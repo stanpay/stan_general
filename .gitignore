@@ -1,0 +1,82 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies & build output
+node_modules
+dist
+dist-ssr
+build
+out
+.vite
+*.tsbuildinfo
+
+# Environment & secrets (배포 시 CI/호스트에서 주입)
+.env
+.env.*
+!.env.example
+!.env*.example
+*.pem
+*.p8
+*.p12
+*.key
+*.jks
+*.mobileprovision
+
+# Local / machine-specific
+*.local
+.DS_Store
+Thumbs.db
+
+# Editor & tooling
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Cursor · 내부 문서 (앱 실행·배포 불필요)
+# 이미 git에 올라간 항목은 `git rm -r --cached <경로>` 로 인덱스에서만 제거해야 함
+.cursor/
+docs/
+
+# 캐시·분석·임시 (소스/빌드 설정과 무관)
+.cache
+.parcel-cache
+.turbo
+coverage
+.nyc_output
+
+# 오피스·업무용 데이터 파일 (레포/배포 불필요)
+*.xlsx
+*.xls
+~$*
+
+# 로컬 메모·에이전트 산출
+.todo
+
+# 적용 완료된 패치·버그리포트 등 산출물 (소스 아님)
+*.patch
+*.diff
+bugreport*.zip
+
+# Vercel CLI 로컬 링크(배포는 vercel.json + 대시보드로 충분)
+.vercel
+
+# Scripts and utilities
+scripts/
+
+# Supabase
+supabase/.temp/
+supabase/migrations/
+supabase/functions/
+supabase/config.toml
+supabase/templates/

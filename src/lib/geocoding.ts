@@ -1,0 +1,117 @@
+import type { AppLocale } from "@/lib/locale";
+import { loadNaverMaps } from "@/lib/naver";
+export const UNKNOWN_ADDRESS = "위치를 확인할 수 없음";
+const REVERSE_GEOCODE_ORDERS = "roadaddr,addr,admcode";
+/** 네이버 리버스 지오코딩 응답 항목 (필요한 필드만 선언) */
+interface ReverseGeocodeRegionName {
+    name?: string;
+}
+interface ReverseGeocodeItem {
+    name?: string;
+    region?: {
+        area1?: ReverseGeocodeRegionName;
+        area2?: ReverseGeocodeRegionName;
+        area3?: ReverseGeocodeRegionName;
+        area4?: ReverseGeocodeRegionName;
+    };
+    land?: {
+        name?: string;
+        number1?: string;
+        number2?: string;
+    };
+}
+interface ReverseGeocodeResponse {
+    results?: ReverseGeocodeItem[];
+    v2?: { results?: ReverseGeocodeItem[] };
+    result?: { results?: ReverseGeocodeItem[] };
+}
+
+function formatReverseGeocodeItem(item: ReverseGeocodeItem): string {
+    const region = item?.region ?? {};
+    const land = item?.land ?? {};
+    const area2 = region.area2?.name ?? "";
+    const area3 = region.area3?.name ?? "";
+    if (item?.name === "roadaddr") {
+        const street = land.name ?? "";
+        const number1 = land.number1 ?? "";
+        const number2 = land.number2 ? `-${land.number2}` : "";
+        return [area2, area3, street, `${number1}${number2}`]
+            .filter(Boolean)
+            .join(" ")
+            .trim();
+    }
+    const number1 = land.number1 ?? "";
+    const number2 = land.number2 ? `-${land.number2}` : "";
+    const lot = number1 ? `${number1}${number2}` : "";
+    return [area2, area3, lot].filter(Boolean).join(" ").trim();
+}
+function pickAddressFromReverseResponse(response: ReverseGeocodeResponse): string | null {
+    const results: ReverseGeocodeItem[] = response?.results ??
+        response?.v2?.results ??
+        response?.result?.results ??
+        [];
+    for (const type of ["roadaddr", "addr", "admcode", "legalcode"]) {
+        const item = results.find((r) => r?.name === type);
+        if (!item)
+            continue;
+        const formatted = formatReverseGeocodeItem(item);
+        if (formatted)
+            return formatted;
+    }
+    return null;
+}
+async function reverseGeocodeWithNaverProxy(latitude: number, longitude: number): Promise<string | null> {
+    const url = new URL("/api/naver/reverse-geocode", window.location.origin);
+    url.searchParams.set("coords", `${longitude},${latitude}`);
+    url.searchParams.set("orders", REVERSE_GEOCODE_ORDERS);
+    url.searchParams.set("output", "json");
+    url.searchParams.set("sourcecrs", "epsg:4326");
+    const res = await fetch(url.toString());
+    if (!res.ok) {
+        return null;
+    }
+    const data = await res.json();
+    if (data?.status?.code !== 0) {
+        return null;
+    }
+    return pickAddressFromReverseResponse(data);
+}
+async function reverseGeocodeWithJs(latitude: number, longitude: number, locale?: AppLocale): Promise<string | null> {
+    await loadNaverMaps(locale, { geocoder: true });
+    const naverSdk = window.naver;
+    if (!naverSdk?.maps?.Service)
+        return null;
+    return new Promise((resolve) => {
+        const timeoutId = window.setTimeout(() => resolve(null), 10000);
+        naverSdk.maps.Service.reverseGeocode({
+            coords: new naverSdk.maps.LatLng(latitude, longitude),
+            orders: REVERSE_GEOCODE_ORDERS,
+        }, (status, response) => {
+            window.clearTimeout(timeoutId);
+            if (status !== naverSdk.maps.Service.Status.OK) {
+                resolve(null);
+                return;
+            }
+            resolve(pickAddressFromReverseResponse(response?.v2 ?? response));
+        });
+    });
+}
+export async function getAddressFromCoords(latitude: number, longitude: number, locale?: AppLocale): Promise<string> {
+    try {
+        const fromProxy = await reverseGeocodeWithNaverProxy(latitude, longitude);
+        if (fromProxy)
+            return fromProxy;
+    }
+    catch {
+        // 실패 시 다음 폴백 경로로 넘어간다
+    }
+    try {
+        const fromJs = await reverseGeocodeWithJs(latitude, longitude, locale);
+        if (fromJs)
+            return fromJs;
+    }
+    catch {
+        // 실패 시 다음 폴백 경로로 넘어간다
+    }
+    return UNKNOWN_ADDRESS;
+}

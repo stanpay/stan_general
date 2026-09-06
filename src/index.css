@@ -1,0 +1,292 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-show {
+    -ms-overflow-style: auto;
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.45) transparent;
+  }
+  .scrollbar-show::-webkit-scrollbar {
+    display: block;
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-show::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.45);
+    border-radius: 9999px;
+  }
+  .scrollbar-show::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  /* 얇은 스크롤바 — 카드 레이아웃(px-3)과 분리, 스크롤바는 오른쪽 여백 위에 겹침 */
+  .scrollbar-minimal {
+    -ms-overflow-style: auto;
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.45) transparent;
+  }
+  .scrollbar-minimal::-webkit-scrollbar {
+    display: block;
+    width: 4px;
+    height: 4px;
+  }
+  .scrollbar-minimal::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.45);
+    border-radius: 9999px;
+    min-height: 32px;
+  }
+  .scrollbar-minimal::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .marquee-on-overflow {
+    display: inline-block;
+    max-width: none;
+    white-space: nowrap;
+    animation: marquee-x 3s linear infinite;
+    will-change: transform;
+  }
+}
+
+@keyframes marquee-x {
+  0%,
+  12% {
+    transform: translateX(0);
+  }
+  45%,
+  100% {
+    transform: translateX(calc(-1 * var(--marquee-distance, 0px)));
+  }
+}
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 270 10% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 270 10% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 270 10% 15%;
+
+    --primary: 270 70% 55%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 270 20% 96%;
+    --secondary-foreground: 270 10% 15%;
+
+    --muted: 270 10% 96%;
+    --muted-foreground: 270 8% 45%;
+
+    --accent: 270 70% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 270 10% 90%;
+    --input: 270 10% 90%;
+    --ring: 270 70% 55%;
+
+    --radius: 1rem;
+
+    --shadow-card: 0 2px 8px -2px hsl(270 70% 55% / 0.08);
+    --shadow-card-hover: 0 8px 16px -4px hsl(270 70% 55% / 0.12);
+  }
+
+  .dark {
+    --background: 270 20% 10%;
+    --foreground: 270 5% 95%;
+
+    --card: 270 15% 15%;
+    --card-foreground: 270 5% 95%;
+
+    --popover: 270 15% 15%;
+    --popover-foreground: 270 5% 95%;
+
+    --primary: 270 70% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 270 10% 20%;
+    --secondary-foreground: 270 5% 95%;
+
+    --muted: 270 10% 20%;
+    --muted-foreground: 270 5% 60%;
+
+    --accent: 270 70% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 270 5% 95%;
+
+    --border: 270 10% 25%;
+    --input: 270 10% 25%;
+    --ring: 270 70% 60%;
+
+    --shadow-card: 0 2px 8px -2px hsl(270 70% 60% / 0.15);
+    --shadow-card-hover: 0 8px 16px -4px hsl(270 70% 60% / 0.25);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    -webkit-tap-highlight-color: transparent;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  *::-webkit-scrollbar {
+    display: none;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', 'Noto Sans KR', 'Noto Sans JP', 'Noto Sans SC', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    font-variation-settings: normal;
+    touch-action: pan-x pan-y;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  input,
+  textarea,
+  select,
+  [contenteditable="true"] {
+    user-select: text;
+    -webkit-user-select: text;
+    -webkit-touch-callout: default;
+  }
+
+  /* Prevent passive event listener warnings */
+  button, 
+  a,
+  [role="button"],
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+  }
+
+  img {
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  .map-container img {
+    max-width: none !important;
+  }
+
+  a {
+    -webkit-user-drag: none;
+  }
+
+  /* Chatwoot 런처 — 뷰포트 우측 하단 고정 여백 */
+  #cw-bubble-holder {
+    z-index: 60 !important;
+    top: auto !important;
+    left: auto !important;
+    right: 1.5rem !important;
+    bottom: var(--chatwoot-widget-bottom, calc(4rem + 30px - 1.75rem)) !important;
+  }
+
+  /* 실제 런처 버튼은 holder와 별개로 position:fixed(bottom:20px)로 잡혀 있어
+     모바일에서 하단 내비게이션과 겹친다. 버튼 자체를 직접 띄운다. */
+  .woot-widget-bubble,
+  .woot-widget-bubble.woot-elements--right,
+  .woot-widget-bubble.woot-widget-bubble--close.woot-elements--right {
+    z-index: 60 !important;
+    top: auto !important;
+    left: auto !important;
+    right: 1.5rem !important;
+    bottom: var(--chatwoot-widget-bottom, calc(4rem + 30px - 1.75rem)) !important;
+  }
+
+  /* Chatwoot SDK id는 cw-widget-holder — 모바일 팝업 크기·위치는 chatwoot.ts에서 visualViewport 기준으로 조정 */
+  #cw-widget-holder.woot-widget-holder {
+    z-index: 60 !important;
+    border-radius: 16px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.16) !important;
+    overflow: hidden !important;
+  }
+
+  /* 레이아웃 transition은 열려 있을 때만 적용한다. 닫을 때(woot--hide)까지
+     transition이 살아 있으면 inline 좌표 제거가 0.28s 동안 애니메이션되어
+     패널이 즉시 사라지지 않고 원위치로 미끄러지며 남는다. */
+  #cw-widget-holder.woot-widget-holder:not(.woot--hide) {
+    transition: top 0.28s ease, left 0.28s ease, width 0.28s ease, height 0.28s ease,
+      max-height 0.28s ease, min-height 0.28s ease, transform 0.28s ease,
+      border-radius 0.28s ease !important;
+  }
+
+  #cw-widget-holder.woot-widget-holder iframe {
+    min-height: 0 !important;
+    max-height: 100% !important;
+    height: 100% !important;
+  }
+
+  #stan-chatwoot-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    background: rgba(0, 0, 0, 0.35);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  #stan-chatwoot-backdrop.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  html.chatwoot-panel-open,
+  html.chatwoot-panel-open body {
+    overflow: hidden !important;
+    overscroll-behavior: none;
+  }
+
+  html.chatwoot-panel-open:not(.chatwoot-ios-panel-open),
+  html.chatwoot-panel-open:not(.chatwoot-ios-panel-open) body {
+    height: 100%;
+  }
+
+  html.chatwoot-keyboard-open #cw-widget-holder.woot-widget-holder:not(.woot--hide):not(.has-unread-view) {
+    border-radius: 0 0 16px 16px !important;
+  }
+
+  @supports (-webkit-touch-callout: none) {
+    html.chatwoot-ios-panel-open nav.fixed.bottom-0 {
+      opacity: 0 !important;
+      pointer-events: none !important;
+      transition: opacity 0.18s ease !important;
+    }
+
+    html.chatwoot-ios-layout-compensate nav.fixed.bottom-0 {
+      transform: translate3d(0, var(--chatwoot-ios-layout-shift, 0px), 0) !important;
+    }
+  }
+}
+
