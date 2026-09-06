@@ -1,12 +1,19 @@
 import { useState } from "react";
 import { MessageCircle, X } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import ChatPanel from "@/components/ChatPanel";
 import { CHAT_FAB_BOTTOM, CHAT_FAB_RIGHT, CHAT_FAB_SIZE } from "@/lib/chatFab";
 import { cn } from "@/lib/utils";
 
 /** 전역 우측 하단 채팅 FAB + 커스텀 채팅 팝업 (더미 UI) */
 const FloatingChatButton = () => {
+  const { pathname } = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+
+  // 상권 스냅샷(/jejuonedosim)에는 채팅 FAB를 두지 않는다.
+  if (pathname === "/jejuonedosim" || pathname.startsWith("/jejuonedosim/")) {
+    return null;
+  }
 
   return (
     <>
