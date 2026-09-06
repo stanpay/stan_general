@@ -68,7 +68,10 @@ type MapViewBottomSheetProps = {
   onSelectStoreFromCard?: (store: MapSheetStore) => void;
   title: string;
   dragHint: string;
-  sortLabel: string;
+  sortBy: "distance" | "discount";
+  onSortChange: (sort: "distance" | "discount") => void;
+  sortDistanceLabel: string;
+  sortDiscountLabel: string;
   /** 시트 높이 변경 시 (지도 핀 위치 보정용) — 드래그 중에는 호출되지 않음 */
   onPanelHeightChange?: (height: number) => void;
   /** 시트 드래그 시작/종료 (지도 제스처 차단용) */
@@ -91,7 +94,10 @@ const MapViewBottomSheet = ({
   onSelectStoreFromCard,
   title,
   dragHint,
-  sortLabel,
+  sortBy,
+  onSortChange,
+  sortDistanceLabel,
+  sortDiscountLabel,
   onPanelHeightChange,
   onDraggingChange,
   hideForMapSearch = false,
@@ -740,14 +746,15 @@ const MapViewBottomSheet = ({
             <div className="flex items-center gap-2">
               <button
                 type="button"
+                onClick={() => onSortChange(sortBy === "distance" ? "discount" : "distance")}
                 onPointerDown={(e) => e.stopPropagation()}
                 onPointerLeave={(event) => event.currentTarget.blur()}
                 onPointerCancel={(event) => event.currentTarget.blur()}
                 onPointerUp={(event) => event.currentTarget.blur()}
-                className="flex cursor-default items-center gap-1 rounded-full border border-border/60 bg-muted/60 px-2.5 py-1 text-[11px] font-medium text-foreground focus:outline-none"
+                className="flex cursor-pointer items-center gap-1 rounded-full border border-border/60 bg-muted/60 px-2.5 py-1 text-[11px] font-medium text-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus:bg-muted/60 focus:text-foreground focus:outline-none active:bg-muted/60 active:text-foreground"
               >
                 <ArrowUpDown className="h-3 w-3" />
-                {sortLabel}
+                {sortBy === "distance" ? sortDistanceLabel : sortDiscountLabel}
               </button>
               <span className="text-xs text-muted-foreground">
                 {totalStoreCount ?? stores.length}

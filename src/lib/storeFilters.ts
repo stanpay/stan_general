@@ -122,7 +122,7 @@ export function storeMatchesBenefitChipFilters(
   chips: ReadonlySet<LegacyBenefitFilterChipId>,
   locale: AppLocale
 ): boolean {
-  // openNow는 제거됨 — 혜택 칩만 매칭
+  // openNow는 영업 여부 필터에서 따로 처리하므로 여기서는 제외
   if (chips.has("all")) return true;
 
   const parts: boolean[] = [];

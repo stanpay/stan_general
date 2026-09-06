@@ -18,7 +18,7 @@ import {
 /**
  * 칩 선택 토글 규칙.
  * "all"은 단독 선택이고, 나머지는 다중 선택이며, 모두 해제되면 "all"로 돌아간다.
- * 구역·카테고리·(레거시가 아닌) 혜택 칩이 같은 규칙을 쓴다.
+ * 구역·카테고리·(openNow를 제외한) 혜택 칩이 같은 규칙을 쓴다.
  */
 function toggleChipSelection<T extends string>(
   prev: ReadonlySet<T>,
@@ -38,16 +38,13 @@ function toggleChipSelection<T extends string>(
 
 type UseStoreFiltersOptions = {
   locale: AppLocale;
-  /** 3단 가로 칩 행(레거시 데모) — openNow 칩이 추가된다 */
+  /** 3단 가로 칩 행(레거시 데모) — openNow 칩이 혜택 줄에 포함된다 */
   legacyFilterUI: boolean;
 };
 
 export function useStoreFilters({ locale, legacyFilterUI }: UseStoreFiltersOptions) {
   const [benefitFilterChips, setBenefitFilterChips] = useState<Set<LegacyBenefitFilterChipId>>(
-    () =>
-      new Set<LegacyBenefitFilterChipId>(
-        legacyFilterUI ? ["all", "openNow"] : ["all"]
-      )
+    () => new Set<LegacyBenefitFilterChipId>(["all", "openNow"])
   );
   const [areaFilterChips, setAreaFilterChips] = useState<Set<StoreAreaFilterChipId>>(
     () => new Set<StoreAreaFilterChipId>(["all"])
@@ -72,6 +69,7 @@ export function useStoreFilters({ locale, legacyFilterUI }: UseStoreFiltersOptio
         ? LEGACY_BENEFIT_FILTER_CHIP_ORDER
         : LEGACY_BENEFIT_FILTER_CHIP_ORDER.filter((id) => id !== "highOilSupport");
     }
+    // 기본 UI: openNow는 구역 칩 행에 따로 두므로 혜택 드롭다운에는 제외
     return locale === "ko"
       ? BENEFIT_FILTER_CHIP_ORDER
       : BENEFIT_FILTER_CHIP_ORDER.filter((id) => id !== "highOilSupport");
@@ -83,36 +81,31 @@ export function useStoreFilters({ locale, legacyFilterUI }: UseStoreFiltersOptio
 
   const toggleBenefitFilter = (id: LegacyBenefitFilterChipId) => {
     setBenefitFilterChips((prev) => {
-      if (legacyFilterUI) {
-        const next = new Set(prev);
+      const next = new Set(prev);
 
-        if (id === "openNow") {
-          if (next.has("openNow")) next.delete("openNow");
-          else next.add("openNow");
-          return next;
-        }
-
-        if (id === "all") {
-          const hasOpenNow = next.has("openNow");
-          next.clear();
-          next.add("all");
-          if (hasOpenNow) next.add("openNow");
-          return next;
-        }
-
-        next.delete("all");
-        if (next.has(id)) next.delete(id);
-        else next.add(id);
-
-        const selectedBenefitChips = new Set([...next].filter((c) => c !== "openNow"));
-        if (selectedBenefitChips.size === 0) next.add("all");
-
+      // 영업중은 혜택 칩들과 별도로 토글한다.
+      if (id === "openNow") {
+        if (next.has("openNow")) next.delete("openNow");
+        else next.add("openNow");
         return next;
       }
 
-      // 레거시 UI가 아니면 openNow 칩 자체가 없다
-      if (id === "openNow") return prev;
-      return toggleChipSelection(prev, id, "all");
+      if (id === "all") {
+        const hasOpenNow = next.has("openNow");
+        next.clear();
+        next.add("all");
+        if (hasOpenNow) next.add("openNow");
+        return next;
+      }
+
+      next.delete("all");
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+
+      const selectedBenefitChips = new Set([...next].filter((c) => c !== "openNow"));
+      if (selectedBenefitChips.size === 0) next.add("all");
+
+      return next;
     });
   };
 

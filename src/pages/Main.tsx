@@ -268,6 +268,7 @@ const Main = ({ legacyFilterUI = false, threeDropdownFilterUI = false }: MainPro
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [sortBy, setSortBy] = useState<"distance" | "discount">("distance");
   const [currentLocation, setCurrentLocation] = useState("위치 가져오는 중...");
   const [isLoadingLocation, setIsLoadingLocation] = useState(true);
   const [isManualLocation, setIsManualLocation] = useState(false);
@@ -1345,7 +1346,14 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
     [filteredStores, chipSelection, locale]
   );
 
-  const openStores = categoryFilteredStores;
+  // 혜택/구역 줄의 openNow 칩이 켜진 경우에만 영업중 필터 적용
+  const openStores = useMemo(
+    () =>
+      benefitFilterChips.has("openNow")
+        ? categoryFilteredStores.filter((store) => store.isOpen !== false)
+        : categoryFilteredStores,
+    [categoryFilteredStores, benefitFilterChips]
+  );
 
   const hasStoreCoords = (store: StoreData) =>
     Number.isFinite(store.lat) && Number.isFinite(store.lon);
@@ -1408,9 +1416,18 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
 
   const sortedStores = useMemo(() => {
     const list = [...openStores];
-    if (!currentCoords) return sortStoresByName(list);
-    return list.sort((a, b) => a.distanceNum - b.distanceNum);
-  }, [openStores, currentCoords]);
+    if (!currentCoords) {
+      if (sortBy === "discount") {
+        return list.sort(
+          (a, b) => b.discountNum - a.discountNum || a.name.localeCompare(b.name, "ko")
+        );
+      }
+      return sortStoresByName(list);
+    }
+    return list.sort((a, b) =>
+      sortBy === "distance" ? a.distanceNum - b.distanceNum : b.discountNum - a.discountNum
+    );
+  }, [openStores, sortBy, currentCoords]);
 
   const visibleStores = useMemo(
     () => sortedStores.slice(0, visibleStoreCount),
@@ -1424,9 +1441,18 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
     const base = mapFilteredStores
       ? mapFilteredStores.filter(hasStoreCoords)
       : categoryFilteredStores.filter(hasStoreCoords);
-    if (!currentCoords) return sortStoresByName(base);
-    return [...base].sort((a, b) => a.distanceNum - b.distanceNum);
-  }, [mapFilteredStores, categoryFilteredStores, currentCoords]);
+    if (!currentCoords) {
+      if (sortBy === "discount") {
+        return [...base].sort(
+          (a, b) => b.discountNum - a.discountNum || a.name.localeCompare(b.name, "ko")
+        );
+      }
+      return sortStoresByName(base);
+    }
+    return [...base].sort((a, b) =>
+      sortBy === "distance" ? a.distanceNum - b.distanceNum : b.discountNum - a.discountNum
+    );
+  }, [mapFilteredStores, categoryFilteredStores, sortBy, currentCoords]);
 
   const visibleMapSheetStores = useMemo(
     () => storesWithCoords.slice(0, visibleMapSheetCount),
@@ -2882,11 +2908,16 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
                 variant="outline"
                 size="sm"
                 type="button"
+                onClick={() => setSortBy(sortBy === "distance" ? "discount" : "distance")}
                 className="flex shrink-0 items-center gap-2 border border-primary"
                 style={{ backgroundColor: "white", color: "#26222A" }}
               >
                 <ArrowUpDown className="w-4 h-4" />
-                {currentCoords ? t.sortDistance : t.sortName}
+                {sortBy === "distance"
+                  ? currentCoords
+                    ? t.sortDistance
+                    : t.sortName
+                  : t.sortDiscount}
               </Button>
             )}
           </div>
@@ -2937,7 +2968,12 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
                     t.filterBenefitLabel,
                     benefitFilterChipOrder,
                     benefitFilterChips,
-                    (next) => setBenefitFilterChips(next),
+                    (next) => {
+                      const merged = new Set(next);
+                      if (benefitFilterChips.has("openNow")) merged.add("openNow");
+                      else merged.delete("openNow");
+                      setBenefitFilterChips(merged);
+                    },
                     legacyBenefitChipLabelMap,
                     t.benefitFilterToolbarAria
                   )}
@@ -2954,14 +2990,31 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
             </div>
           ) : (
             <div className="space-y-2 pointer-events-none">
-              {renderFilterChipRow(
-                STORE_AREA_FILTER_CHIP_ORDER,
-                areaFilterChips,
-                toggleAreaFilter,
-                areaChipLabelMap,
-                t.areaFilterToolbarAria,
-                true
-              )}
+              <div
+                className="-mx-4 w-[calc(100%+2rem)] pointer-events-none py-0.5"
+                role="toolbar"
+                aria-label={t.areaFilterToolbarAria}
+              >
+                <div className={FILTER_CHIP_ROW_VIEWPORT_CLASS}>
+                  <div className={FILTER_CHIP_ROW_INNER_CLASS}>
+                    {STORE_AREA_FILTER_CHIP_ORDER.map((id) => (
+                      <ChipButton
+                        key={id}
+                        id={id}
+                        active={areaFilterChips.has(id)}
+                        label={areaChipLabelMap[id]}
+                        onToggle={() => toggleAreaFilter(id)}
+                      />
+                    ))}
+                    <ChipButton
+                      id="openNow"
+                      active={benefitFilterChips.has("openNow")}
+                      label={t.chipOpenNow}
+                      onToggle={() => toggleBenefitFilter("openNow")}
+                    />
+                  </div>
+                </div>
+              </div>
               <div
                 className="-mx-4 w-[calc(100%+2rem)] py-0.5 pointer-events-none"
                 role="toolbar"
@@ -2976,7 +3029,12 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
                       t.filterBenefitLabel,
                       benefitFilterChipOrder,
                       benefitFilterChips,
-                      (next) => setBenefitFilterChips(next),
+                      (next) => {
+                        const merged = new Set(next);
+                        if (benefitFilterChips.has("openNow")) merged.add("openNow");
+                        else merged.delete("openNow");
+                        setBenefitFilterChips(merged);
+                      },
                       legacyBenefitChipLabelMap,
                       t.benefitFilterToolbarAria
                     )}
@@ -3143,7 +3201,10 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
         hideForMapSearch={mapSearchChromeHidden}
         title={t.mapSheetTitle}
         dragHint={t.mapSheetDragHint}
-        sortLabel={currentCoords ? t.sortDistance : t.sortName}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+        sortDistanceLabel={currentCoords ? t.sortDistance : t.sortName}
+        sortDiscountLabel={t.sortDiscount}
       />
     </div>
   );

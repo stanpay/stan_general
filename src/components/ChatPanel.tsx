@@ -19,6 +19,16 @@ type ChatPanelProps = {
   onClose: () => void;
 };
 
+/** FAB 위 패널 기본 bottom (px): 4rem+30px-1.75rem + FAB + 0.75rem */
+const panelBaseBottomPx = () => {
+  const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+  return (4 - 1.75 + 3.5 + 0.75) * rem + 30;
+};
+
+const PANEL_MAX_HEIGHT_PX = 560;
+const PANEL_TOP_GAP_PX = 16;
+const KEYBOARD_GAP_PX = 12;
+
 const formatTime = (iso: string) => {
   try {
     return new Intl.DateTimeFormat("ko-KR", {
@@ -52,6 +62,10 @@ const ChatPanel = ({ open, onClose }: ChatPanelProps) => {
   const [messages, setMessages] = useState<DummyChatMessage[]>(DUMMY_CHAT_MESSAGES);
   const [draft, setDraft] = useState("");
   const [isBotTyping, setIsBotTyping] = useState(false);
+  const [panelBox, setPanelBox] = useState({
+    bottom: 0,
+    maxHeight: PANEL_MAX_HEIGHT_PX,
+  });
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const replyTimerRef = useRef<number | null>(null);
@@ -72,6 +86,40 @@ const ChatPanel = ({ open, onClose }: ChatPanelProps) => {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open, onClose]);
+
+  // 모바일 키보드: visualViewport 만큼 패널을 올리고 max-height를 줄임
+  useEffect(() => {
+    if (!open) return;
+
+    const syncPanelBox = () => {
+      const vv = window.visualViewport;
+      const layoutH = window.innerHeight;
+      const vvH = vv?.height ?? layoutH;
+      const vvTop = vv?.offsetTop ?? 0;
+      const keyboardInset = Math.max(0, layoutH - (vvTop + vvH));
+      const baseBottom = panelBaseBottomPx();
+      const bottom =
+        keyboardInset > 80
+          ? keyboardInset + KEYBOARD_GAP_PX
+          : Math.max(baseBottom, keyboardInset + KEYBOARD_GAP_PX);
+      const bottomInVv = Math.max(0, bottom - keyboardInset);
+      const maxHeight = Math.max(
+        180,
+        Math.min(PANEL_MAX_HEIGHT_PX, vvH - bottomInVv - PANEL_TOP_GAP_PX)
+      );
+      setPanelBox({ bottom, maxHeight });
+    };
+
+    syncPanelBox();
+    window.addEventListener("resize", syncPanelBox);
+    window.visualViewport?.addEventListener("resize", syncPanelBox);
+    window.visualViewport?.addEventListener("scroll", syncPanelBox);
+    return () => {
+      window.removeEventListener("resize", syncPanelBox);
+      window.visualViewport?.removeEventListener("resize", syncPanelBox);
+      window.visualViewport?.removeEventListener("scroll", syncPanelBox);
+    };
+  }, [open]);
 
   useEffect(() => {
     return () => {
@@ -137,11 +185,12 @@ const ChatPanel = ({ open, onClose }: ChatPanelProps) => {
         aria-label={DUMMY_CHAT_HEADER_TITLE}
         className={cn(
           "fixed z-[60] flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xl",
-          "left-3 right-3 max-h-[min(560px,calc(100dvh-8rem))]",
+          "left-3 right-3",
           "sm:left-auto sm:right-[1.5rem] sm:w-[min(380px,calc(100vw-1.5rem))]"
         )}
         style={{
-          bottom: `calc(${CHAT_FAB_BOTTOM} + ${CHAT_FAB_SIZE} + 0.75rem)`,
+          bottom: panelBox.bottom || `calc(${CHAT_FAB_BOTTOM} + ${CHAT_FAB_SIZE} + 0.75rem)`,
+          maxHeight: panelBox.maxHeight,
         }}
       >
         <header className="flex shrink-0 items-center gap-3 bg-primary px-4 py-3 text-primary-foreground">
