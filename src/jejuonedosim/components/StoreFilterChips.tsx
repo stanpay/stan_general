@@ -27,7 +27,7 @@ import { cn } from "@/lib/utils";
 import {
   getFilterDropdownLabel,
   type FilterChipScrollDragState,
-} from "@/lib/filterChipScroll";
+} from "../lib/filterChipScroll";
 
 
 type FilterDropdownChipProps<T extends string> = {
@@ -40,11 +40,6 @@ type FilterDropdownChipProps<T extends string> = {
   scrollDragRef: MutableRefObject<FilterChipScrollDragState>;
 };
 
-export type ChipColorScheme = {
-  idle: string;
-  active: string;
-};
-
 export const ChipButton = forwardRef<
   HTMLButtonElement,
   {
@@ -54,22 +49,9 @@ export const ChipButton = forwardRef<
     onToggle?: () => void;
     showChevron?: boolean;
     primaryBorder?: boolean;
-    /** 카테고리 등 테마별 칩 색 (있으면 primary 기본색 대신 사용) */
-    colorScheme?: ChipColorScheme;
   } & ButtonHTMLAttributes<HTMLButtonElement>
 >(function ChipButton(
-  {
-    id,
-    active,
-    label,
-    onToggle,
-    showChevron = false,
-    primaryBorder = false,
-    colorScheme,
-    className,
-    onClick,
-    ...rest
-  },
+  { id, active, label, onToggle, showChevron = false, primaryBorder = false, className, onClick, ...rest },
   ref
 ) {
   return (
@@ -83,15 +65,11 @@ export const ChipButton = forwardRef<
       }}
       className={cn(
         "pointer-events-auto flex shrink-0 items-center justify-center gap-1 rounded-full border px-3 py-1.5 font-medium transition-colors",
-        colorScheme
-          ? active
-            ? colorScheme.active
-            : colorScheme.idle
-          : active
-            ? "border-primary bg-primary text-primary-foreground shadow-sm"
-            : primaryBorder
-              ? "border-primary bg-card text-foreground hover:bg-muted/80 focus:outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 data-[state=open]:border-primary data-[state=open]:ring-2 data-[state=open]:ring-primary/20"
-              : "border-border bg-card text-foreground hover:bg-muted/80",
+        active
+          ? "border-primary bg-primary text-primary-foreground shadow-sm"
+          : primaryBorder
+            ? "border-primary bg-card text-foreground hover:bg-muted/80 focus:outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 data-[state=open]:border-primary data-[state=open]:ring-2 data-[state=open]:ring-primary/20"
+            : "border-border bg-card text-foreground hover:bg-muted/80",
         className
       )}
       {...rest}

@@ -3,7 +3,7 @@ import type { KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, MapPin, Search, Loader2, X } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 
 /** Card/div 클릭 영역을 키보드로도 활성화할 수 있게 한다 */
@@ -23,6 +23,23 @@ import {
 } from "@/lib/locationPrefetch";
 import { AutoFitMarquee } from "@/components/AutoFitMarquee";
 import { useAppLocale } from "@/contexts/AppLocaleContext";
+
+/** 위치 선택 후 돌아갈 상권/메인 경로. open redirect 방지용 화이트리스트. */
+const RETURN_TO_PATHS = new Set(["/main", "/jeju", "/jejuonedosim"]);
+
+function resolveReturnTo(
+  stateReturnTo: unknown,
+  queryReturnTo: string | null,
+): string {
+  if (typeof stateReturnTo === "string" && RETURN_TO_PATHS.has(stateReturnTo)) {
+    return stateReturnTo;
+  }
+  if (queryReturnTo && RETURN_TO_PATHS.has(queryReturnTo)) {
+    return queryReturnTo;
+  }
+  return "/main";
+}
+
 interface RecentLocation {
     name: string;
     address: string;
@@ -31,6 +48,12 @@ interface RecentLocation {
 }
 const Location = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const [searchParams] = useSearchParams();
+    const returnTo = resolveReturnTo(
+      (location.state as { returnTo?: unknown } | null)?.returnTo,
+      searchParams.get("returnTo"),
+    );
     const { toast } = useToast();
     const { locale } = useAppLocale();
     const [searchQuery, setSearchQuery] = useState("");
@@ -117,7 +140,7 @@ const Location = () => {
         if (address) {
             saveToRecentLocations(name, address, coordinates);
         }
-        navigate("/main");
+        navigate(returnTo);
     };
     const handleSearchResultSelect = (result: KakaoSearchResult) => {
         const displayName = result.place_name || result.address_name;
@@ -147,7 +170,7 @@ const Location = () => {
             const displayName = address !== UNKNOWN_ADDRESS ? address : "현재 위치";
             persistPrefetchedLocation(latitude, longitude, displayName);
             setIsLoadingLocation(false);
-            navigate("/main");
+            navigate(returnTo);
         }
         catch (error) {
             setIsLoadingLocation(false);
@@ -179,7 +202,7 @@ const Location = () => {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-card border-b border-border">
         <div className="max-w-md mx-auto px-4 py-4 flex items-center gap-4">
-          <Link to="/main">
+          <Link to={returnTo}>
             <Button variant="ghost" size="icon" className="rounded-full">
               <ArrowLeft className="w-5 h-5"/>
             </Button>

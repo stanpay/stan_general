@@ -31,58 +31,6 @@ export const STORE_CATEGORY_CHIP_ORDER: StoreFilterChipId[] = [
   "other",
 ];
 
-/** 카테고리 테마(전체 제외) — 칩·지도 독립 핀 공통 */
-export type StoreCategoryThemeId = "restaurant" | "cafe" | "shopping" | "other";
-
-export type StoreCategoryThemeStyle = {
-  /** 지도 핀 balloon/tail — 칩 idle 배경과 동일 톤 */
-  hex: string;
-  /** 지도 핀 라벨 — 칩 텍스트와 동일 톤 */
-  labelHex: string;
-  /** 지도 핀 테두리 */
-  borderHex: string;
-  /** 칩 비선택 */
-  chipIdle: string;
-  /** 칩 선택 */
-  chipActive: string;
-};
-
-/** Tailwind 파스텔 배경 + 중간 톤 텍스트 (연함↔진함 사이) */
-export const STORE_CATEGORY_THEME: Record<StoreCategoryThemeId, StoreCategoryThemeStyle> = {
-  restaurant: {
-    hex: "#ffe4e6", // rose-100
-    labelHex: "#f43f5e", // rose-500 — 빨강만 글씨 세기 살짝 낮춤
-    borderHex: "#fda4af", // rose-300
-    chipIdle: "border-rose-300 bg-rose-50 text-rose-500 hover:bg-rose-100/80",
-    chipActive: "border-rose-400 bg-rose-100 text-rose-700 shadow-sm hover:bg-rose-100",
-  },
-  cafe: {
-    hex: "#fef3c7", // amber-100
-    labelHex: "#d97706", // amber-600
-    borderHex: "#fcd34d", // amber-300
-    chipIdle: "border-amber-300 bg-amber-50 text-amber-600 hover:bg-amber-100/80",
-    chipActive: "border-amber-400 bg-amber-100 text-amber-800 shadow-sm hover:bg-amber-100",
-  },
-  shopping: {
-    hex: "#d1fae5", // emerald-100
-    labelHex: "#059669", // emerald-600
-    borderHex: "#6ee7b7", // emerald-300
-    chipIdle: "border-emerald-300 bg-emerald-50 text-emerald-600 hover:bg-emerald-100/80",
-    chipActive: "border-emerald-400 bg-emerald-100 text-emerald-700 shadow-sm hover:bg-emerald-100",
-  },
-  other: {
-    hex: "#f1f5f9", // slate-100
-    labelHex: "#475569", // slate-600
-    borderHex: "#cbd5e1", // slate-300
-    chipIdle: "border-slate-300 bg-slate-50 text-slate-600 hover:bg-slate-100/80",
-    chipActive: "border-slate-400 bg-slate-100 text-slate-700 shadow-sm hover:bg-slate-100",
-  },
-};
-
-/** 클러스터·폴백 핀 기본색 (기존 지도 파랑) */
-export const MAP_PIN_DEFAULT_HEX = "#2D8CFF";
-export const MAP_PIN_SELECTED_HEX = "#ea580c";
-
 export type StoreAreaFilterChipId =
   | "all"
   | "areaChilsungro"
@@ -169,28 +117,12 @@ function storeChipIsOther(store: StoreLikeForChip): boolean {
   );
 }
 
-/** 매장의 카테고리 테마 ID (칩·핀 색 공통) */
-export function getStoreCategoryThemeId(store: StoreLikeForChip): StoreCategoryThemeId {
-  if (storeChipIsCafe(store)) return "cafe";
-  if (storeChipIsRestaurant(store)) return "restaurant";
-  if (storeChipIsShopping(store)) return "shopping";
-  return "other";
-}
-
-export function getStoreCategoryThemeHex(store: StoreLikeForChip): string {
-  return STORE_CATEGORY_THEME[getStoreCategoryThemeId(store)].hex;
-}
-
-export function getStoreCategoryTheme(store: StoreLikeForChip): StoreCategoryThemeStyle {
-  return STORE_CATEGORY_THEME[getStoreCategoryThemeId(store)];
-}
-
 export function storeMatchesBenefitChipFilters(
   store: StoreLikeForChip,
   chips: ReadonlySet<LegacyBenefitFilterChipId>,
   locale: AppLocale
 ): boolean {
-  // openNow는 영업 여부 필터에서 따로 처리하므로 여기서는 제외
+  // openNow는 제거됨 — 혜택 칩만 매칭
   if (chips.has("all")) return true;
 
   const parts: boolean[] = [];

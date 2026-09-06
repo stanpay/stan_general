@@ -51,7 +51,8 @@ npm run dev
 
 | 경로 | 설명 |
 |------|------|
-| `/`, `/jeju`, `/main` | 매장 목록·지도 (메인) |
+| `/`, `/jeju`, `/main` | 매장 목록·지도 (전국·커스텀 운영 메인) |
+| `/jejuonedosim` | 제주 원도심 상권 — Initial commit Main/지도 스냅샷 (`src/jejuonedosim/`, `/main`과 독립) |
 | `/location` | 위치 검색·최근 위치 |
 | `/navigate` | 제주여행자센터 안내·길안내 |
 | `/jejuqronedosim` | `/navigate` 로 리다이렉트 (외부 QR·인쇄물 진입용 추정) |

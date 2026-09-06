@@ -1,6 +1,6 @@
 import Main from "./Main";
 
-/** 클라이언트 검토용: Main과 동일 UI, 3단 칩 필터만 구버전 */
-const FilterLegacyDemo = () => <Main legacyFilterUI />;
+/** 클라이언트 검토용: 기본과 동일한 2줄 칩 필터 */
+const FilterLegacyDemo = () => <Main />;
 
 export default FilterLegacyDemo;

@@ -22,7 +22,7 @@ import StoreCard from "@/components/StoreCard";
 import StoreCardSkeleton from "@/components/StoreCardSkeleton";
 import MapViewBottomSheet, {
   MAP_VIEW_SHEET_PEEK_HEIGHT,
-} from "@/components/MapViewBottomSheet";
+} from "./components/MapViewBottomSheet";
 import {
   MAP_SPIDERFY_MAX_RADIUS_PX,
   PIN_LABEL_FONT_SIZE_PX,
@@ -37,12 +37,15 @@ import {
   pinLabelRectsOverlap,
   panMapPinAboveSheet,
   buildMyLocationPinElement,
-} from "@/lib/mapPins";
-import { CHAT_FAB_RIGHT, SCROLL_TO_TOP_BOTTOM } from "@/lib/chatFab";
+} from "./lib/mapPins";
+import {
+  CHAT_FAB_RIGHT as CHATWOOT_LAUNCHER_RIGHT,
+  SCROLL_TO_TOP_BOTTOM,
+} from "@/lib/chatFab";
 import MainPromoBanner from "@/components/MainPromoBanner";
 import { AutoFitMarquee } from "@/components/AutoFitMarquee";
-import BottomNav from "@/components/BottomNav";
-import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
+import BottomNav from "./components/BottomNav";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -80,30 +83,32 @@ import { distanceMeters } from "@/lib/geoDistance";
 import {
   StoreFilterChipId,
   STORE_CATEGORY_CHIP_ORDER,
-  STORE_CATEGORY_THEME,
-  MAP_PIN_DEFAULT_HEX,
-  MAP_PIN_SELECTED_HEX,
   StoreAreaFilterChipId,
   STORE_AREA_FILTER_CHIP_ORDER,
   LegacyBenefitFilterChipId,
   imageFromStoreCategory,
   categoryGroupCodeFromStoreCategory,
-  getStoreCategoryTheme,
   storeMatchesAllChipFilters,
   filterStoresByName,
-  type StoreCategoryThemeId,
   type StoreChipSelection,
-} from "@/lib/storeFilters";
+} from "./lib/storeFilters";
 import {
   FILTER_CHIP_ROW_VIEWPORT_CLASS,
   FILTER_CHIP_ROW_INNER_CLASS,
   INITIAL_FILTER_CHIP_SCROLL_DRAG_STATE,
   createFilterChipScrollDragHandlers,
   type FilterChipScrollDragState,
-} from "@/lib/filterChipScroll";
-import { ChipButton, FilterDropdownChip } from "@/components/StoreFilterChips";
-import { useStoreFilters } from "@/hooks/useStoreFilters";
+} from "./lib/filterChipScroll";
+import { ChipButton, FilterDropdownChip } from "./components/StoreFilterChips";
+import { useStoreFilters } from "./hooks/useStoreFilters";
 import { useScrollToTop } from "@/hooks/useScrollToTop";
+
+/** 상권 스냅샷 — Chatwoot 없이 전역 FAB와만 공존. 위치 갱신은 no-op. */
+const updateChatwootBubblePosition = (_options: {
+  isMapView: boolean;
+  isMobile?: boolean;
+  mapSheetPanelHeight?: number;
+}) => {};
 
 
 const MAP_MAX_ZOOM = 21;
@@ -263,18 +268,16 @@ function sortStoresByName<T extends { name: string }>(stores: T[]): T[] {
 
 
 type MainProps = {
-  /** @deprecated 기본 UI가 2줄 칩과 동일 — 데모 라우트 호환용 */
+  /** 3단 가로 칩 행 필터 */
   legacyFilterUI?: boolean;
   /** 구역·할인·카테고리 3중 드롭다운 한 줄 (검토용 데모) */
   threeDropdownFilterUI?: boolean;
 };
 
-const Main = ({ threeDropdownFilterUI = false }: MainProps) => {
+const Main = ({ legacyFilterUI = false, threeDropdownFilterUI = false }: MainProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [sortBy, setSortBy] = useState<"distance" | "discount">("distance");
   const [currentLocation, setCurrentLocation] = useState("위치 가져오는 중...");
   const [isLoadingLocation, setIsLoadingLocation] = useState(true);
   const [isManualLocation, setIsManualLocation] = useState(false);
@@ -506,9 +509,10 @@ const Main = ({ threeDropdownFilterUI = false }: MainProps) => {
     categoryFilterChips,
     setCategoryFilterChips,
     benefitFilterChipOrder,
+    toggleAreaFilter,
     toggleBenefitFilter,
     toggleCategoryFilter,
-  } = useStoreFilters({ locale });
+  } = useStoreFilters({ locale, legacyFilterUI });
   const [showLocationPermModal, setShowLocationPermModal] = useState(false);
   const isMapView = searchParams.get("map") === "1";
   const isMapViewRef = useRef(isMapView);
@@ -577,8 +581,6 @@ const Main = ({ threeDropdownFilterUI = false }: MainProps) => {
   const myLocationMarkerRef = useRef<naver.maps.Marker | null>(null);
   const currentCoordsRef = useRef(currentCoords);
   const skipNextFitMapRef = useRef(false);
-  /** 검색어 변경 후 핀 갱신이 끝나면 fitBounds 1회 수행 */
-  const pendingFitAfterPinsRef = useRef(false);
   /** true면 center/fit/pan으로 뷰포트 변경 금지 (검색 지우기·재검색 등, rebuild마다 리셋되지 않음) */
   const preserveMapViewportRef = useRef(false);
   /** 첫 지도 세팅: fitMapToStores 생략, applyInitialMapView로 center+zoom만 적용 */
@@ -604,6 +606,10 @@ const Main = ({ threeDropdownFilterUI = false }: MainProps) => {
   const handleMapSheetPanelHeightChange = useCallback((height: number) => {
     if (mapSheetPanelHeightRef.current === height) return;
     mapSheetPanelHeightRef.current = height;
+    updateChatwootBubblePosition({
+      isMapView: isMapViewRef.current,
+      mapSheetPanelHeight: height,
+    });
   }, []);
 
   const handleMapSheetDraggingChange = useCallback((dragging: boolean) => {
@@ -641,25 +647,17 @@ const Main = ({ threeDropdownFilterUI = false }: MainProps) => {
       if (!el) return;
       const balloon = el.querySelector("[data-pin-dot]") as HTMLElement | null;
       const tail = el.querySelector("[data-pin-tail]") as HTMLElement | null;
-      const label = el.querySelector("[data-store-label]") as HTMLElement | null;
       if (!balloon) return;
-      const themeHex = balloon.dataset.pinColor || MAP_PIN_DEFAULT_HEX;
-      const labelHex = balloon.dataset.pinLabelColor || "#fff";
-      const borderHex = balloon.dataset.pinBorderColor || "transparent";
       if (isSelected) {
-        balloon.style.background = MAP_PIN_SELECTED_HEX;
-        balloon.style.border = "none";
+        balloon.style.background = "#ea580c";
         balloon.style.transform = "scale(1.1)";
         balloon.style.boxShadow = "0 2px 8px rgba(234,88,12,.45)";
-        if (label) label.style.color = "#fff";
-        if (tail) tail.style.borderTopColor = MAP_PIN_SELECTED_HEX;
+        if (tail) tail.style.borderTopColor = "#ea580c";
       } else {
-        balloon.style.background = themeHex;
-        balloon.style.border = `1px solid ${borderHex}`;
+        balloon.style.background = "#2D8CFF";
         balloon.style.transform = "scale(1)";
-        balloon.style.boxShadow = "0 1px 4px rgba(0,0,0,.12)";
-        if (label) label.style.color = labelHex;
-        if (tail) tail.style.borderTopColor = themeHex;
+        balloon.style.boxShadow = "0 2px 6px rgba(0,0,0,.3)";
+        if (tail) tail.style.borderTopColor = "#2D8CFF";
       }
     });
   }, []);
@@ -725,6 +723,13 @@ const Main = ({ threeDropdownFilterUI = false }: MainProps) => {
     const y = cardScrollYRef.current;
     requestAnimationFrame(() => {
       window.scrollTo(0, y);
+    });
+  }, [isMapView]);
+
+  useEffect(() => {
+    updateChatwootBubblePosition({
+      isMapView,
+      mapSheetPanelHeight: mapSheetPanelHeightRef.current,
     });
   }, [isMapView]);
 
@@ -1302,27 +1307,13 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
     />
   );
 
-  const categoryChipColorSchemes = useMemo(() => {
-    const schemes = {} as Partial<
-      Record<StoreFilterChipId, { idle: string; active: string }>
-    >;
-    (Object.keys(STORE_CATEGORY_THEME) as StoreCategoryThemeId[]).forEach((id) => {
-      schemes[id] = {
-        idle: STORE_CATEGORY_THEME[id].chipIdle,
-        active: STORE_CATEGORY_THEME[id].chipActive,
-      };
-    });
-    return schemes;
-  }, []);
-
   const renderFilterChipRow = <T extends string>(
     order: readonly T[],
     activeChips: ReadonlySet<T>,
     onToggle: (id: T) => void,
     labelMap: Record<T, string>,
     ariaLabel: string,
-    compact = false,
-    colorSchemeById?: Partial<Record<T, { idle: string; active: string }>>,
+    compact = false
   ) => {
     const rowPaddingClass = compact ? "py-0.5" : "py-1";
     const chips = order.map((id) => (
@@ -1332,7 +1323,6 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
         active={activeChips.has(id)}
         label={labelMap[id]}
         onToggle={() => onToggle(id)}
-        colorScheme={colorSchemeById?.[id]}
       />
     ));
 
@@ -1376,14 +1366,7 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
     [filteredStores, chipSelection, locale]
   );
 
-  // 혜택/구역 줄의 openNow 칩이 켜진 경우에만 영업중 필터 적용
-  const openStores = useMemo(
-    () =>
-      benefitFilterChips.has("openNow")
-        ? categoryFilteredStores.filter((store) => store.isOpen !== false)
-        : categoryFilteredStores,
-    [categoryFilteredStores, benefitFilterChips]
-  );
+  const openStores = categoryFilteredStores;
 
   const hasStoreCoords = (store: StoreData) =>
     Number.isFinite(store.lat) && Number.isFinite(store.lon);
@@ -1446,18 +1429,9 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
 
   const sortedStores = useMemo(() => {
     const list = [...openStores];
-    if (!currentCoords) {
-      if (sortBy === "discount") {
-        return list.sort(
-          (a, b) => b.discountNum - a.discountNum || a.name.localeCompare(b.name, "ko")
-        );
-      }
-      return sortStoresByName(list);
-    }
-    return list.sort((a, b) =>
-      sortBy === "distance" ? a.distanceNum - b.distanceNum : b.discountNum - a.discountNum
-    );
-  }, [openStores, sortBy, currentCoords]);
+    if (!currentCoords) return sortStoresByName(list);
+    return list.sort((a, b) => a.distanceNum - b.distanceNum);
+  }, [openStores, currentCoords]);
 
   const visibleStores = useMemo(
     () => sortedStores.slice(0, visibleStoreCount),
@@ -1471,18 +1445,9 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
     const base = mapFilteredStores
       ? mapFilteredStores.filter(hasStoreCoords)
       : categoryFilteredStores.filter(hasStoreCoords);
-    if (!currentCoords) {
-      if (sortBy === "discount") {
-        return [...base].sort(
-          (a, b) => b.discountNum - a.discountNum || a.name.localeCompare(b.name, "ko")
-        );
-      }
-      return sortStoresByName(base);
-    }
-    return [...base].sort((a, b) =>
-      sortBy === "distance" ? a.distanceNum - b.distanceNum : b.discountNum - a.discountNum
-    );
-  }, [mapFilteredStores, categoryFilteredStores, sortBy, currentCoords]);
+    if (!currentCoords) return sortStoresByName(base);
+    return [...base].sort((a, b) => a.distanceNum - b.distanceNum);
+  }, [mapFilteredStores, categoryFilteredStores, currentCoords]);
 
   const visibleMapSheetStores = useMemo(
     () => storesWithCoords.slice(0, visibleMapSheetCount),
@@ -1586,9 +1551,6 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
       const isSelected =
         selectedMapStoreIdRef.current != null &&
         String(store.id) === String(selectedMapStoreIdRef.current);
-      const theme = getStoreCategoryTheme(store);
-      const pinHex = isSelected ? MAP_PIN_SELECTED_HEX : theme.hex;
-      const labelColor = isSelected ? "#fff" : theme.labelHex;
 
       const root = document.createElement("div");
       root.style.cssText = "position:absolute;width:0;height:0;user-select:none;";
@@ -1601,24 +1563,22 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
 
       const balloon = document.createElement("div");
       balloon.dataset.pinDot = "1";
-      balloon.dataset.pinColor = theme.hex;
-      balloon.dataset.pinLabelColor = theme.labelHex;
-      balloon.dataset.pinBorderColor = theme.borderHex;
       balloon.style.cssText = isSelected
-        ? `display:flex;align-items:center;background:${pinHex};border-radius:8px;padding:4px 8px;box-shadow:0 2px 8px rgba(234,88,12,.45);white-space:nowrap;transform:scale(1.1);transition:background .15s ease,transform .15s ease,box-shadow .15s ease,border-color .15s ease;`
-        : `display:flex;align-items:center;background:${pinHex};border:1px solid ${theme.borderHex};border-radius:8px;padding:4px 8px;box-shadow:0 1px 4px rgba(0,0,0,.12);white-space:nowrap;transition:background .15s ease,transform .15s ease,box-shadow .15s ease,border-color .15s ease;`;
+        ? "display:flex;align-items:center;background:#ea580c;border-radius:8px;padding:4px 8px;box-shadow:0 2px 8px rgba(234,88,12,.45);white-space:nowrap;transform:scale(1.1);transition:background .15s ease,transform .15s ease,box-shadow .15s ease;"
+        : "display:flex;align-items:center;background:#2D8CFF;border-radius:8px;padding:4px 8px;box-shadow:0 2px 6px rgba(0,0,0,.3);white-space:nowrap;transition:background .15s ease,transform .15s ease,box-shadow .15s ease;";
 
       const label = document.createElement("span");
       label.setAttribute("data-store-label", "1");
-      label.style.cssText = `font-size:${PIN_LABEL_FONT_SIZE_PX}px;font-weight:700;color:${labelColor};line-height:${PIN_LABEL_LINE_HEIGHT};`;
+      label.style.cssText = `font-size:${PIN_LABEL_FONT_SIZE_PX}px;font-weight:700;color:#fff;line-height:${PIN_LABEL_LINE_HEIGHT};`;
       label.textContent = mapPinLabelsRef.current[store.id] ?? store.name;
 
       balloon.appendChild(label);
 
       const tail = document.createElement("div");
       tail.dataset.pinTail = "1";
-      tail.style.cssText =
-        `width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid ${pinHex};transition:border-top-color .15s ease;`;
+      tail.style.cssText = isSelected
+        ? "width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid #ea580c;transition:border-top-color .15s ease;"
+        : "width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid #2D8CFF;transition:border-top-color .15s ease;";
 
       wrapper.appendChild(balloon);
       wrapper.appendChild(tail);
@@ -1639,7 +1599,7 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
       el.style.cssText =
         "position:absolute;display:flex;align-items:center;justify-content:center;" +
         `width:${PIN_CLUSTER_SIZE_PX}px;height:${PIN_CLUSTER_SIZE_PX}px;transform:translate(-50%,-50%);border-radius:9999px;` +
-        `background:${MAP_PIN_DEFAULT_HEX};border:${PIN_CLUSTER_BORDER_PX}px solid #fff;` +
+        `background:#2D8CFF;border:${PIN_CLUSTER_BORDER_PX}px solid #fff;` +
         "box-shadow:0 2px 8px rgba(0,0,0,.32);" +
         `font-size:${PIN_CLUSTER_FONT_SIZE_PX}px;font-weight:700;color:#fff;cursor:pointer;`;
       el.textContent = String(count);
@@ -1758,8 +1718,6 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
             map.setCenter(center);
             map.setZoom(MAP_INITIAL_ZOOM);
           } catch { /* 지도 SDK가 이미 정리됐을 수 있어 무시한다 */ }
-          // 최초 1회만 적용 — 이후 칩/핀 갱신 때 줌이 초기화되지 않게 한다
-          skipInitialMapFitRef.current = false;
           if (alignToCurrent) {
             alignMapToCurrentLocationRef.current = false;
           }
@@ -2322,9 +2280,13 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
             rebuildStoreOverlaysTimerRef.current = null;
             if (isCancelled || !mapOverlaysReadyRef.current) return;
 
-            // 핀·클러스터만 갱신. 줌/센터는 여기서 절대 바꾸지 않는다.
-            // (칩 필터·할인 보강 등으로 stores가 여러 번 바뀌어도 카메라 유지)
-            skipNextFitMapRef.current = false;
+            const skipDueToNext = skipNextFitMapRef.current;
+            const skipDueToInitial = skipInitialMapFitRef.current;
+            const skipDueToPreserve = preserveMapViewportRef.current;
+            const skipFit = skipDueToNext || skipDueToInitial || skipDueToPreserve;
+            if (skipDueToNext) {
+              skipNextFitMapRef.current = false;
+            }
             clusterRetryCount = 0;
             mapClusteringEnabledRef.current = false;
             activeClusterExpansionRef.current = null;
@@ -2333,7 +2295,16 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
             updateStoreLabels();
             applySelectedPinStylesRef.current();
             hideAllStoreMarkers();
-            applyClustering();
+            if (!skipFit) {
+              fitMapToStores();
+              scheduleApplyClustering();
+            } else {
+              // 재검색·검색 지우기·뷰포트 고정 등: 핀만 갱신, 지도 위치는 유지
+              applyClustering();
+              if (skipDueToInitial && !skipDueToNext && !skipDueToPreserve) {
+                applyInitialMapView();
+              }
+            }
           }, 100);
         };
 
@@ -2511,7 +2482,6 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
         preserveMapViewportRef.current = false;
         skipInitialMapFitRef.current = false;
         skipNextFitMapRef.current = false;
-        pendingFitAfterPinsRef.current = true;
       }
       return;
     }
@@ -2526,14 +2496,12 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
     if (!trimmed) {
       preserveMapViewportRef.current = true;
       skipNextFitMapRef.current = true;
-      pendingFitAfterPinsRef.current = false;
       return;
     }
 
     preserveMapViewportRef.current = false;
     skipInitialMapFitRef.current = false;
     skipNextFitMapRef.current = false;
-    pendingFitAfterPinsRef.current = true;
   }, [searchQuery, isMapView]);
 
   // 모바일 카드뷰: iOS 키보드 시 헤더 위치 보정 (스크롤 잠금 없음)
@@ -2661,25 +2629,16 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
     };
   }, [searchQuery, storesWithCoords, isMapView, isMobile, mapSearchAwaitingRestore]);
 
-  // 칩 필터·매장 목록 변경: 핀만 갱신 (줌/센터 유지). 검색 fit은 pending 플래그로만 수행.
+  // storesWithCoords 변경 시 ref 업데이트 + 지도 핀 교체 (지도 재생성 없음)
   useEffect(() => {
     storesWithCoordsRef.current = storesWithCoords;
     if (!mapInstanceRef.current || !isMapView) return;
 
     const map = mapInstanceRef.current;
     const naver = window.naver;
-    const shouldFit = pendingFitAfterPinsRef.current;
-    if (shouldFit) pendingFitAfterPinsRef.current = false;
 
     const run = () => {
       rebuildStoreOverlaysRef.current?.();
-      if (shouldFit && !preserveMapViewportRef.current) {
-        // 핀 sync 디바운스(100ms) 이후 fit
-        window.setTimeout(() => {
-          if (preserveMapViewportRef.current) return;
-          fitMapToStoresRef.current?.();
-        }, 120);
-      }
     };
 
     if (mapOverlaysReadyRef.current) {
@@ -2773,7 +2732,7 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
                 disabled={isLoadingLocation}
                 onClick={() =>
                   navigate("/location", {
-                    state: { returnTo: location.pathname === "/jeju" ? "/jeju" : "/main" },
+                    state: { returnTo: "/jejuonedosim" },
                   })
                 }
               >
@@ -2948,20 +2907,39 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
                 variant="outline"
                 size="sm"
                 type="button"
-                onClick={() => setSortBy(sortBy === "distance" ? "discount" : "distance")}
                 className="flex shrink-0 items-center gap-2 border border-primary"
                 style={{ backgroundColor: "white", color: "#26222A" }}
               >
                 <ArrowUpDown className="w-4 h-4" />
-                {sortBy === "distance"
-                  ? currentCoords
-                    ? t.sortDistance
-                    : t.sortName
-                  : t.sortDiscount}
+                {currentCoords ? t.sortDistance : t.sortName}
               </Button>
             )}
           </div>
-          {threeDropdownFilterUI ? (
+          {legacyFilterUI ? (
+            <div className="space-y-2 pointer-events-none">
+              {renderFilterChipRow(
+                STORE_AREA_FILTER_CHIP_ORDER,
+                areaFilterChips,
+                toggleAreaFilter,
+                areaChipLabelMap,
+                t.areaFilterToolbarAria
+              )}
+              {renderFilterChipRow(
+                benefitFilterChipOrder,
+                benefitFilterChips,
+                toggleBenefitFilter,
+                legacyBenefitChipLabelMap,
+                t.benefitFilterToolbarAria
+              )}
+              {renderFilterChipRow(
+                STORE_CATEGORY_CHIP_ORDER,
+                categoryFilterChips,
+                toggleCategoryFilter,
+                chipLabelMap,
+                t.categoryFilterToolbarAria
+              )}
+            </div>
+          ) : threeDropdownFilterUI ? (
             <div
               className="-mx-4 w-[calc(100%+2rem)] py-1 pointer-events-none"
               role="toolbar"
@@ -2982,14 +2960,9 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
                   )}
                   {renderFilterDropdown(
                     t.filterBenefitLabel,
-                    benefitFilterChipOrder.filter((id) => id !== "openNow"),
+                    benefitFilterChipOrder,
                     benefitFilterChips,
-                    (next) => {
-                      const merged = new Set(next);
-                      if (benefitFilterChips.has("openNow")) merged.add("openNow");
-                      else merged.delete("openNow");
-                      setBenefitFilterChips(merged);
-                    },
+                    (next) => setBenefitFilterChips(next),
                     legacyBenefitChipLabelMap,
                     t.benefitFilterToolbarAria
                   )}
@@ -3007,21 +2980,42 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
           ) : (
             <div className="space-y-2 pointer-events-none">
               {renderFilterChipRow(
-                benefitFilterChipOrder,
-                benefitFilterChips,
-                toggleBenefitFilter,
-                legacyBenefitChipLabelMap,
-                t.benefitFilterToolbarAria
+                STORE_AREA_FILTER_CHIP_ORDER,
+                areaFilterChips,
+                toggleAreaFilter,
+                areaChipLabelMap,
+                t.areaFilterToolbarAria,
+                true
               )}
-              {renderFilterChipRow(
-                STORE_CATEGORY_CHIP_ORDER,
-                categoryFilterChips,
-                toggleCategoryFilter,
-                chipLabelMap,
-                t.categoryFilterToolbarAria,
-                false,
-                categoryChipColorSchemes
-              )}
+              <div
+                className="-mx-4 w-[calc(100%+2rem)] py-0.5 pointer-events-none"
+                role="toolbar"
+                aria-label={t.storeFilterToolbarAria}
+              >
+                <div className={FILTER_CHIP_ROW_VIEWPORT_CLASS}>
+                  <div
+                    className={FILTER_CHIP_ROW_INNER_CLASS}
+                    {...filterChipScrollDragHandlers}
+                  >
+                    {renderFilterDropdown(
+                      t.filterBenefitLabel,
+                      benefitFilterChipOrder,
+                      benefitFilterChips,
+                      (next) => setBenefitFilterChips(next),
+                      legacyBenefitChipLabelMap,
+                      t.benefitFilterToolbarAria
+                    )}
+                    {renderFilterDropdown(
+                      t.filterCategoryLabel,
+                      STORE_CATEGORY_CHIP_ORDER,
+                      categoryFilterChips,
+                      (next) => setCategoryFilterChips(next),
+                      chipLabelMap,
+                      t.categoryFilterToolbarAria
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
           {isMapView && showResearchButton && (
@@ -3120,7 +3114,7 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
         <div
           className="pointer-events-none fixed z-[60] animate-in fade-in zoom-in-95 duration-200"
           style={{
-            right: CHAT_FAB_RIGHT,
+            right: CHATWOOT_LAUNCHER_RIGHT,
             bottom: SCROLL_TO_TOP_BOTTOM,
           }}
         >
@@ -3174,10 +3168,7 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
         hideForMapSearch={mapSearchChromeHidden}
         title={t.mapSheetTitle}
         dragHint={t.mapSheetDragHint}
-        sortBy={sortBy}
-        onSortChange={setSortBy}
-        sortDistanceLabel={currentCoords ? t.sortDistance : t.sortName}
-        sortDiscountLabel={t.sortDiscount}
+        sortLabel={currentCoords ? t.sortDistance : t.sortName}
       />
     </div>
   );

@@ -16,6 +16,8 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const LandingPage = lazy(() => import("./pages/Landing/LandingPage"));
 const RedirectToJeju = lazy(() => import("./pages/RedirectToJeju"));
 const NavigatePage = lazy(() => import("./pages/Navigate"));
+/** 제주 원도심 상권 — Initial commit Main/지도 스냅샷. /main 작업과 독립. */
+const JejuOneDosim = lazy(() => import("./jejuonedosim/Main"));
 
 // 개발 전용 페이지는 정적 import를 유지한다.
 // lazy()로 바꾸면 동적 import가 프로덕션에서도 별도 청크로 방출되어
@@ -55,6 +57,7 @@ const App = () => (
           <Route path="/" element={<Navigate to="/main" replace />} />
           <Route path="/jeju" element={<Main />} />
           <Route path="/main" element={<Main />} />
+          <Route path="/jejuonedosim" element={<JejuOneDosim />} />
           <Route path="/landing" element={<LandingPage />} />
           <Route path="/location" element={<Location />} />
           <Route path="/navigate" element={<NavigatePage />} />
