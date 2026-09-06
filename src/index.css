@@ -201,92 +201,29 @@ All colors MUST be HSL.
     -webkit-user-drag: none;
   }
 
-  /* Chatwoot 런처 — 뷰포트 우측 하단 고정 여백 */
-  #cw-bubble-holder {
-    z-index: 60 !important;
-    top: auto !important;
-    left: auto !important;
-    right: 1.5rem !important;
-    bottom: var(--chatwoot-widget-bottom, calc(4rem + 30px - 1.75rem)) !important;
-  }
-
-  /* 실제 런처 버튼은 holder와 별개로 position:fixed(bottom:20px)로 잡혀 있어
-     모바일에서 하단 내비게이션과 겹친다. 버튼 자체를 직접 띄운다. */
-  .woot-widget-bubble,
-  .woot-widget-bubble.woot-elements--right,
-  .woot-widget-bubble.woot-widget-bubble--close.woot-elements--right {
-    z-index: 60 !important;
-    top: auto !important;
-    left: auto !important;
-    right: 1.5rem !important;
-    bottom: var(--chatwoot-widget-bottom, calc(4rem + 30px - 1.75rem)) !important;
-  }
-
-  /* Chatwoot SDK id는 cw-widget-holder — 모바일 팝업 크기·위치는 chatwoot.ts에서 visualViewport 기준으로 조정 */
-  #cw-widget-holder.woot-widget-holder {
-    z-index: 60 !important;
-    border-radius: 16px !important;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.16) !important;
-    overflow: hidden !important;
-  }
-
-  /* 레이아웃 transition은 열려 있을 때만 적용한다. 닫을 때(woot--hide)까지
-     transition이 살아 있으면 inline 좌표 제거가 0.28s 동안 애니메이션되어
-     패널이 즉시 사라지지 않고 원위치로 미끄러지며 남는다. */
-  #cw-widget-holder.woot-widget-holder:not(.woot--hide) {
-    transition: top 0.28s ease, left 0.28s ease, width 0.28s ease, height 0.28s ease,
-      max-height 0.28s ease, min-height 0.28s ease, transform 0.28s ease,
-      border-radius 0.28s ease !important;
-  }
-
-  #cw-widget-holder.woot-widget-holder iframe {
-    min-height: 0 !important;
-    max-height: 100% !important;
-    height: 100% !important;
-  }
-
-  #stan-chatwoot-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 55;
-    background: rgba(0, 0, 0, 0.35);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
-    transform: translateZ(0);
-    backface-visibility: hidden;
-  }
-
-  #stan-chatwoot-backdrop.is-visible {
-    opacity: 1;
-    pointer-events: auto;
-  }
-
-  html.chatwoot-panel-open,
-  html.chatwoot-panel-open body {
-    overflow: hidden !important;
-    overscroll-behavior: none;
-  }
-
-  html.chatwoot-panel-open:not(.chatwoot-ios-panel-open),
-  html.chatwoot-panel-open:not(.chatwoot-ios-panel-open) body {
-    height: 100%;
-  }
-
-  html.chatwoot-keyboard-open #cw-widget-holder.woot-widget-holder:not(.woot--hide):not(.has-unread-view) {
-    border-radius: 0 0 16px 16px !important;
-  }
-
-  @supports (-webkit-touch-callout: none) {
-    html.chatwoot-ios-panel-open nav.fixed.bottom-0 {
-      opacity: 0 !important;
-      pointer-events: none !important;
-      transition: opacity 0.18s ease !important;
+  @keyframes chat-typing-bounce {
+    0%,
+    60%,
+    100% {
+      opacity: 0.35;
+      transform: translateY(0);
     }
-
-    html.chatwoot-ios-layout-compensate nav.fixed.bottom-0 {
-      transform: translate3d(0, var(--chatwoot-ios-layout-shift, 0px), 0) !important;
+    30% {
+      opacity: 1;
+      transform: translateY(-2px);
     }
+  }
+
+  .chat-typing-dot {
+    animation: chat-typing-bounce 1.2s ease-in-out infinite;
+  }
+
+  .chat-typing-dot-delay-1 {
+    animation-delay: 0.15s;
+  }
+
+  .chat-typing-dot-delay-2 {
+    animation-delay: 0.3s;
   }
 }
 

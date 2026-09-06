@@ -1,7 +1,7 @@
 {
   "name": "스탠(Stan)",
   "short_name": "스탠",
-  "description": "원도심 할인 큐레이션 서비스",
+  "description": "여행의 기준이 되다",
   "id": "/main",
   "start_url": "/main",
   "scope": "/",

@@ -38,11 +38,7 @@ import {
   panMapPinAboveSheet,
   buildMyLocationPinElement,
 } from "@/lib/mapPins";
-import {
-  updateChatwootBubblePosition,
-  CHATWOOT_LAUNCHER_RIGHT,
-  SCROLL_TO_TOP_BOTTOM,
-} from "@/lib/chatwoot";
+import { CHAT_FAB_RIGHT, SCROLL_TO_TOP_BOTTOM } from "@/lib/chatFab";
 import MainPromoBanner from "@/components/MainPromoBanner";
 import { AutoFitMarquee } from "@/components/AutoFitMarquee";
 import BottomNav from "@/components/BottomNav";
@@ -600,10 +596,6 @@ const Main = ({ legacyFilterUI = false, threeDropdownFilterUI = false }: MainPro
   const handleMapSheetPanelHeightChange = useCallback((height: number) => {
     if (mapSheetPanelHeightRef.current === height) return;
     mapSheetPanelHeightRef.current = height;
-    updateChatwootBubblePosition({
-      isMapView: isMapViewRef.current,
-      mapSheetPanelHeight: height,
-    });
   }, []);
 
   const handleMapSheetDraggingChange = useCallback((dragging: boolean) => {
@@ -717,13 +709,6 @@ const Main = ({ legacyFilterUI = false, threeDropdownFilterUI = false }: MainPro
     const y = cardScrollYRef.current;
     requestAnimationFrame(() => {
       window.scrollTo(0, y);
-    });
-  }, [isMapView]);
-
-  useEffect(() => {
-    updateChatwootBubblePosition({
-      isMapView,
-      mapSheetPanelHeight: mapSheetPanelHeightRef.current,
     });
   }, [isMapView]);
 
@@ -3104,7 +3089,7 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
         <div
           className="pointer-events-none fixed z-[60] animate-in fade-in zoom-in-95 duration-200"
           style={{
-            right: CHATWOOT_LAUNCHER_RIGHT,
+            right: CHAT_FAB_RIGHT,
             bottom: SCROLL_TO_TOP_BOTTOM,
           }}
         >

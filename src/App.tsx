@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 // 지연 로드하면 초기 진입에 오히려 요청 단계가 하나 늘어나 정적으로 유지한다.
 import Main from "./pages/Main";
 import PwaInstallPrompt from "./components/PwaInstallPrompt";
+import FloatingChatButton from "./components/FloatingChatButton";
 
 // 진입 직후에는 필요 없는 라우트는 별도 청크로 분리한다
 const Location = lazy(() => import("./pages/Location"));
@@ -70,6 +71,7 @@ const App = () => (
           <Route path="*" element={<NotFound />} />
         </Routes>
         </Suspense>
+        <FloatingChatButton />
         <PwaInstallPrompt />
         <NaverMapFallbackDialog />
       </BrowserRouter>
