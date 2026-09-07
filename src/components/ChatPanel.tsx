@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Send, X } from "lucide-react";
 import {
   DUMMY_CHAT_AGENT_NAME,
@@ -12,6 +12,11 @@ import {
   type DummyChatMessage,
 } from "@/lib/chatDummyData";
 import { CHAT_FAB_BOTTOM, CHAT_FAB_SIZE } from "@/lib/chatFab";
+import {
+  getVirtualKeyboard,
+  getViewportKeyboardInsets,
+  isNarrowViewport,
+} from "@/lib/viewportInsets";
 import { cn } from "@/lib/utils";
 
 type ChatPanelProps = {
@@ -19,15 +24,19 @@ type ChatPanelProps = {
   onClose: () => void;
 };
 
-/** FAB 위 패널 기본 bottom (px): 4rem+30px-1.75rem + FAB + 0.75rem */
+type PanelBox = {
+  bottom: number;
+  height: number;
+};
+
+const PANEL_MAX_HEIGHT_PX = 560;
+const PANEL_TOP_GAP_PX = 12;
+const KEYBOARD_GAP_PX = 8;
+
 const panelBaseBottomPx = () => {
   const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
   return (4 - 1.75 + 3.5 + 0.75) * rem + 30;
 };
-
-const PANEL_MAX_HEIGHT_PX = 560;
-const PANEL_TOP_GAP_PX = 16;
-const KEYBOARD_GAP_PX = 12;
 
 const formatTime = (iso: string) => {
   try {
@@ -58,25 +67,54 @@ const TypingBubble = () => (
   </div>
 );
 
+const computePanelBox = (inputFocused: boolean): PanelBox => {
+  const layoutH = window.innerHeight;
+  const baseBottom = panelBaseBottomPx();
+  const { bottomInset, topInset, keyboardOpen } =
+    getViewportKeyboardInsets(inputFocused);
+
+  // PWA: bottomInset = keyboard only / 웹: keyboard + addressBar
+  const bottom = keyboardOpen ? bottomInset + KEYBOARD_GAP_PX : baseBottom;
+
+  const height = Math.max(
+    160,
+    Math.min(PANEL_MAX_HEIGHT_PX, layoutH - bottom - PANEL_TOP_GAP_PX - topInset)
+  );
+
+  return { bottom, height };
+};
+
 const ChatPanel = ({ open, onClose }: ChatPanelProps) => {
   const [messages, setMessages] = useState<DummyChatMessage[]>(DUMMY_CHAT_MESSAGES);
   const [draft, setDraft] = useState("");
   const [isBotTyping, setIsBotTyping] = useState(false);
-  const [panelBox, setPanelBox] = useState({
+  const [inputFocused, setInputFocused] = useState(false);
+  const [panelBox, setPanelBox] = useState<PanelBox>({
     bottom: 0,
-    maxHeight: PANEL_MAX_HEIGHT_PX,
+    height: PANEL_MAX_HEIGHT_PX,
   });
   const listRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const replyTimerRef = useRef<number | null>(null);
   const replyIndexRef = useRef(0);
+  const inputFocusedRef = useRef(false);
 
   useEffect(() => {
     if (!open) return;
     const el = listRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-    window.setTimeout(() => inputRef.current?.focus(), 120);
   }, [open, messages, isBotTyping]);
+
+  // 데스크톱만 자동 포커스. 모바일 autofocus는 키보드+주소창을 바로 띄움
+  useEffect(() => {
+    if (!open) return;
+    if (isNarrowViewport()) return;
+    const id = window.setTimeout(() => {
+      inputRef.current?.focus({ preventScroll: true });
+    }, 120);
+    return () => window.clearTimeout(id);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -87,39 +125,74 @@ const ChatPanel = ({ open, onClose }: ChatPanelProps) => {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open, onClose]);
 
-  // 모바일 키보드: visualViewport 만큼 패널을 올리고 max-height를 줄임
   useEffect(() => {
     if (!open) return;
-
-    const syncPanelBox = () => {
-      const vv = window.visualViewport;
-      const layoutH = window.innerHeight;
-      const vvH = vv?.height ?? layoutH;
-      const vvTop = vv?.offsetTop ?? 0;
-      const keyboardInset = Math.max(0, layoutH - (vvTop + vvH));
-      const baseBottom = panelBaseBottomPx();
-      const bottom =
-        keyboardInset > 80
-          ? keyboardInset + KEYBOARD_GAP_PX
-          : Math.max(baseBottom, keyboardInset + KEYBOARD_GAP_PX);
-      const bottomInVv = Math.max(0, bottom - keyboardInset);
-      const maxHeight = Math.max(
-        180,
-        Math.min(PANEL_MAX_HEIGHT_PX, vvH - bottomInVv - PANEL_TOP_GAP_PX)
-      );
-      setPanelBox({ bottom, maxHeight });
+    const html = document.documentElement;
+    const body = document.body;
+    const scrollY = window.scrollY;
+    const prev = {
+      htmlOverflow: html.style.overflow,
+      bodyOverflow: body.style.overflow,
+      bodyPosition: body.style.position,
+      bodyTop: body.style.top,
+      bodyWidth: body.style.width,
     };
 
-    syncPanelBox();
-    window.addEventListener("resize", syncPanelBox);
-    window.visualViewport?.addEventListener("resize", syncPanelBox);
-    window.visualViewport?.addEventListener("scroll", syncPanelBox);
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.width = "100%";
+
     return () => {
-      window.removeEventListener("resize", syncPanelBox);
-      window.visualViewport?.removeEventListener("resize", syncPanelBox);
-      window.visualViewport?.removeEventListener("scroll", syncPanelBox);
+      html.style.overflow = prev.htmlOverflow;
+      body.style.overflow = prev.bodyOverflow;
+      body.style.position = prev.bodyPosition;
+      body.style.top = prev.bodyTop;
+      body.style.width = prev.bodyWidth;
+      window.scrollTo(0, scrollY);
     };
   }, [open]);
+
+  useLayoutEffect(() => {
+    if (!open) {
+      inputFocusedRef.current = false;
+      setInputFocused(false);
+      return;
+    }
+
+    const vk = getVirtualKeyboard();
+    if (vk) {
+      try {
+        vk.overlaysContent = true;
+      } catch {
+        // ignore
+      }
+    }
+
+    const apply = () => {
+      const next = computePanelBox(inputFocusedRef.current);
+      setPanelBox(next);
+      const el = panelRef.current;
+      if (el) {
+        el.style.bottom = `${next.bottom}px`;
+        el.style.height = `${next.height}px`;
+        el.style.maxHeight = `${next.height}px`;
+      }
+    };
+
+    apply();
+    window.addEventListener("resize", apply);
+    window.visualViewport?.addEventListener("resize", apply);
+    window.visualViewport?.addEventListener("scroll", apply);
+    vk?.addEventListener("geometrychange", apply);
+    return () => {
+      window.removeEventListener("resize", apply);
+      window.visualViewport?.removeEventListener("resize", apply);
+      window.visualViewport?.removeEventListener("scroll", apply);
+      vk?.removeEventListener("geometrychange", apply);
+    };
+  }, [open, inputFocused]);
 
   useEffect(() => {
     return () => {
@@ -171,6 +244,11 @@ const ChatPanel = ({ open, onClose }: ChatPanelProps) => {
 
   if (!open) return null;
 
+  const bottomStyle =
+    panelBox.bottom > 0
+      ? panelBox.bottom
+      : (`calc(${CHAT_FAB_BOTTOM} + ${CHAT_FAB_SIZE} + 0.75rem)` as const);
+
   return (
     <>
       <button
@@ -180,6 +258,7 @@ const ChatPanel = ({ open, onClose }: ChatPanelProps) => {
         onClick={onClose}
       />
       <section
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label={DUMMY_CHAT_HEADER_TITLE}
@@ -189,8 +268,9 @@ const ChatPanel = ({ open, onClose }: ChatPanelProps) => {
           "sm:left-auto sm:right-[1.5rem] sm:w-[min(380px,calc(100vw-1.5rem))]"
         )}
         style={{
-          bottom: panelBox.bottom || `calc(${CHAT_FAB_BOTTOM} + ${CHAT_FAB_SIZE} + 0.75rem)`,
-          maxHeight: panelBox.maxHeight,
+          bottom: bottomStyle,
+          height: panelBox.height,
+          maxHeight: panelBox.height,
         }}
       >
         <header className="flex shrink-0 items-center gap-3 bg-primary px-4 py-3 text-primary-foreground">
@@ -265,6 +345,19 @@ const ChatPanel = ({ open, onClose }: ChatPanelProps) => {
               placeholder={DUMMY_CHAT_PLACEHOLDER}
               disabled={isBotTyping}
               onChange={(e) => setDraft(e.target.value)}
+              onFocus={() => {
+                inputFocusedRef.current = true;
+                setInputFocused(true);
+                const y = window.scrollY;
+                requestAnimationFrame(() => window.scrollTo(0, y));
+              }}
+              onBlur={() => {
+                window.setTimeout(() => {
+                  const focused = document.activeElement === inputRef.current;
+                  inputFocusedRef.current = focused;
+                  setInputFocused(focused);
+                }, 50);
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();

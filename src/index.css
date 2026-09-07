@@ -69,6 +69,13 @@
   }
 }
 
+/* 채팅 열림: 문서 오버스크롤/바운스 차단 (주소창 유발 완화) */
+html.chat-viewport-locked,
+html.chat-viewport-locked body {
+  overscroll-behavior: none;
+  touch-action: manipulation;
+}
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */

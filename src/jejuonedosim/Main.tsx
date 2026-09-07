@@ -78,6 +78,10 @@ import {
 import { useAppLocale } from "@/contexts/AppLocaleContext";
 import { useTranslatedAddressLine } from "@/hooks/useKoreanDisplayText";
 import { cn } from "@/lib/utils";
+import {
+  getVirtualKeyboard,
+  getViewportKeyboardInsets,
+} from "@/lib/viewportInsets";
 import { translateKoText } from "@/lib/koTranslate";
 import { distanceMeters } from "@/lib/geoDistance";
 import {
@@ -2504,31 +2508,39 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
     skipNextFitMapRef.current = false;
   }, [searchQuery, isMapView]);
 
-  // 모바일 카드뷰: iOS 키보드 시 헤더 위치 보정 (스크롤 잠금 없음)
+  // 모바일 검색 포커스 시 상단 보정 (카드 헤더·지도 검색행)
+  // PWA → visualViewport.offsetTop(키보드)만 / 웹 → 키보드+주소창
   useEffect(() => {
-    if (isMapView || !isMobile || !searchInputFocused) {
+    if (!isMobile || !searchInputFocused) {
       setCardHeaderIosTop(0);
       return;
     }
 
-    if (!isIOSMobile) return;
-
-    const vv = window.visualViewport;
-    if (!vv) return;
+    const vk = getVirtualKeyboard();
+    if (vk) {
+      try {
+        vk.overlaysContent = true;
+      } catch {
+        // ignore
+      }
+    }
 
     const syncHeaderTop = () => {
-      setCardHeaderIosTop(Math.max(0, Math.round(vv.offsetTop)));
+      const { topInset } = getViewportKeyboardInsets(true);
+      setCardHeaderIosTop(Math.max(0, topInset));
     };
 
     syncHeaderTop();
-    vv.addEventListener("resize", syncHeaderTop);
-    vv.addEventListener("scroll", syncHeaderTop);
+    window.visualViewport?.addEventListener("resize", syncHeaderTop);
+    window.visualViewport?.addEventListener("scroll", syncHeaderTop);
+    vk?.addEventListener("geometrychange", syncHeaderTop);
     return () => {
-      vv.removeEventListener("resize", syncHeaderTop);
-      vv.removeEventListener("scroll", syncHeaderTop);
+      window.visualViewport?.removeEventListener("resize", syncHeaderTop);
+      window.visualViewport?.removeEventListener("scroll", syncHeaderTop);
+      vk?.removeEventListener("geometrychange", syncHeaderTop);
       setCardHeaderIosTop(0);
     };
-  }, [isMapView, isMobile, isIOSMobile, searchInputFocused]);
+  }, [isMobile, searchInputFocused]);
 
   // Android: 키보드 열림 후 배너 숨김 위치 재조정
   useEffect(() => {
@@ -2793,6 +2805,11 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
         <div
           ref={cardSearchRowRef}
           className={cn("mb-4 flex items-center gap-2", isMapView && "relative z-20 px-4")}
+          style={
+            isMapView && cardHeaderIosTop > 0
+              ? { transform: `translateY(${cardHeaderIosTop}px)` }
+              : undefined
+          }
         >
           <div className="relative min-w-0 flex-1">
             <span

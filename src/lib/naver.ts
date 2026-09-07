@@ -37,11 +37,14 @@ function buildNaverMapsScriptUrl(clientId: string, language: string, withGeocode
     return `https://oapi.map.naver.com/openapi/v3/maps.js?${params.toString()}`;
 }
 function getNaverMapClientId(): string {
+    // 빈 문자열도 미설정으로 본다. Vercel에 VITE_NAVER_NCP_KEY_ID="" 가 있으면
+    // ?? 는 통과하지 않아 뒤에 있는 VITE_NAVER_CLIENT_ID를 영원히 무시한다.
     const clientId =
-        import.meta.env.VITE_NAVER_NCP_KEY_ID ??
-        import.meta.env.VITE_NAVER_CLIENT_ID ??
-        import.meta.env.VITE_NAVER_MAP_CLIENT_ID ??
-        import.meta.env.VITE_NAVER_NCP_CLIENT_ID;
+        import.meta.env.VITE_NAVER_NCP_KEY_ID ||
+        import.meta.env.VITE_NAVER_CLIENT_ID ||
+        import.meta.env.VITE_NAVER_MAP_CLIENT_ID ||
+        import.meta.env.VITE_NAVER_NCP_CLIENT_ID ||
+        import.meta.env.VITE_NAVER_API_KEY_ID;
     if (!clientId) {
         throw new Error("VITE_NAVER_CLIENT_ID(또는 VITE_NAVER_NCP_KEY_ID)가 설정되지 않았습니다.");
     }

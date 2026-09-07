@@ -3,6 +3,7 @@ import { MessageCircle, X } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import ChatPanel from "@/components/ChatPanel";
 import { CHAT_FAB_BOTTOM, CHAT_FAB_RIGHT, CHAT_FAB_SIZE } from "@/lib/chatFab";
+import { acquireChatViewportLock } from "@/lib/chatViewportLock";
 import { cn } from "@/lib/utils";
 
 /** 전역 우측 하단 채팅 FAB + 커스텀 채팅 팝업 (더미 UI) */
@@ -22,13 +23,21 @@ const FloatingChatButton = () => {
         type="button"
         aria-label={isOpen ? "채팅 닫기" : "채팅 열기"}
         aria-expanded={isOpen}
-        onClick={() => setIsOpen((open) => !open)}
+        // 모바일 Chrome: 하단 fixed 버튼 포커스 → scrollIntoView → 살짝 스크롤/주소창
+        onPointerDown={(event) => {
+          event.preventDefault();
+        }}
+        onClick={() => {
+          if (!isOpen) acquireChatViewportLock();
+          setIsOpen((open) => !open);
+        }}
         className={cn(
           "fixed z-[60] flex items-center justify-center rounded-full",
           "bg-primary text-primary-foreground shadow-lg",
+          "touch-manipulation select-none",
           "transition-[transform,opacity] duration-200 ease-out",
           "hover:brightness-110 active:scale-95",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          "focus:outline-none focus-visible:outline-none"
         )}
         style={{
           bottom: CHAT_FAB_BOTTOM,

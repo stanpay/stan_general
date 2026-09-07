@@ -47,35 +47,35 @@ export type StoreCategoryThemeStyle = {
   chipActive: string;
 };
 
-/** Tailwind 파스텔 배경 + 중간 톤 텍스트 (연함↔진함 사이) */
+/** Tailwind — idle은 연한 아웃라인 유지, active는 테두리 두껍게·글자·테두리만 진하게 */
 export const STORE_CATEGORY_THEME: Record<StoreCategoryThemeId, StoreCategoryThemeStyle> = {
   restaurant: {
     hex: "#ffe4e6", // rose-100
     labelHex: "#f43f5e", // rose-500 — 빨강만 글씨 세기 살짝 낮춤
     borderHex: "#fda4af", // rose-300
-    chipIdle: "border-rose-300 bg-rose-50 text-rose-500 hover:bg-rose-100/80",
-    chipActive: "border-rose-400 bg-rose-100 text-rose-700 shadow-sm hover:bg-rose-100",
+    chipIdle: "border-rose-300 bg-card text-rose-600 hover:bg-rose-50",
+    chipActive: "border-2 border-rose-700 bg-card text-rose-800 hover:bg-rose-50",
   },
   cafe: {
     hex: "#fef3c7", // amber-100
     labelHex: "#d97706", // amber-600
     borderHex: "#fcd34d", // amber-300
-    chipIdle: "border-amber-300 bg-amber-50 text-amber-600 hover:bg-amber-100/80",
-    chipActive: "border-amber-400 bg-amber-100 text-amber-800 shadow-sm hover:bg-amber-100",
+    chipIdle: "border-amber-300 bg-card text-amber-700 hover:bg-amber-50",
+    chipActive: "border-2 border-amber-700 bg-card text-amber-900 hover:bg-amber-50",
   },
   shopping: {
     hex: "#d1fae5", // emerald-100
     labelHex: "#059669", // emerald-600
     borderHex: "#6ee7b7", // emerald-300
-    chipIdle: "border-emerald-300 bg-emerald-50 text-emerald-600 hover:bg-emerald-100/80",
-    chipActive: "border-emerald-400 bg-emerald-100 text-emerald-700 shadow-sm hover:bg-emerald-100",
+    chipIdle: "border-emerald-300 bg-card text-emerald-700 hover:bg-emerald-50",
+    chipActive: "border-2 border-emerald-700 bg-card text-emerald-900 hover:bg-emerald-50",
   },
   other: {
     hex: "#f1f5f9", // slate-100
     labelHex: "#475569", // slate-600
     borderHex: "#cbd5e1", // slate-300
-    chipIdle: "border-slate-300 bg-slate-50 text-slate-600 hover:bg-slate-100/80",
-    chipActive: "border-slate-400 bg-slate-100 text-slate-700 shadow-sm hover:bg-slate-100",
+    chipIdle: "border-slate-300 bg-card text-slate-600 hover:bg-slate-50",
+    chipActive: "border-2 border-slate-700 bg-card text-slate-900 hover:bg-slate-50",
   },
 };
 

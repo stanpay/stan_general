@@ -23,6 +23,10 @@ import {
 } from "@/lib/locationPrefetch";
 import { AutoFitMarquee } from "@/components/AutoFitMarquee";
 import { useAppLocale } from "@/contexts/AppLocaleContext";
+import {
+  getVirtualKeyboard,
+  getViewportKeyboardInsets,
+} from "@/lib/viewportInsets";
 
 /** 위치 선택 후 돌아갈 상권/메인 경로. open redirect 방지용 화이트리스트. */
 const RETURN_TO_PATHS = new Set(["/main", "/jeju", "/jejuonedosim"]);
@@ -57,6 +61,8 @@ const Location = () => {
     const { toast } = useToast();
     const { locale } = useAppLocale();
     const [searchQuery, setSearchQuery] = useState("");
+    const [searchFocused, setSearchFocused] = useState(false);
+    const [headerTopInset, setHeaderTopInset] = useState(0);
     const [isLoadingLocation, setIsLoadingLocation] = useState(false);
     const [searchResults, setSearchResults] = useState<KakaoSearchResult[]>([]);
     const [isSearching, setIsSearching] = useState(false);
@@ -73,6 +79,36 @@ const Location = () => {
             }
         }
     }, []);
+
+    // 웹: 키보드+주소창 / PWA: 키보드(offsetTop)만 헤더 보정
+    useEffect(() => {
+      if (!searchFocused) {
+        setHeaderTopInset(0);
+        return;
+      }
+      const vk = getVirtualKeyboard();
+      if (vk) {
+        try {
+          vk.overlaysContent = true;
+        } catch {
+          // ignore
+        }
+      }
+      const sync = () => {
+        const { topInset } = getViewportKeyboardInsets(true);
+        setHeaderTopInset(Math.max(0, topInset));
+      };
+      sync();
+      window.visualViewport?.addEventListener("resize", sync);
+      window.visualViewport?.addEventListener("scroll", sync);
+      vk?.addEventListener("geometrychange", sync);
+      return () => {
+        window.visualViewport?.removeEventListener("resize", sync);
+        window.visualViewport?.removeEventListener("scroll", sync);
+        vk?.removeEventListener("geometrychange", sync);
+        setHeaderTopInset(0);
+      };
+    }, [searchFocused]);
     // 검색 로직 (debounce 적용)
     useEffect(() => {
         const delaySearch = setTimeout(async () => {
@@ -200,7 +236,14 @@ const Location = () => {
     };
     return (<div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-card border-b border-border">
+      <header
+        className="sticky top-0 z-40 bg-card border-b border-border"
+        style={
+          headerTopInset > 0
+            ? { transform: `translateY(${headerTopInset}px)` }
+            : undefined
+        }
+      >
         <div className="max-w-md mx-auto px-4 py-4 flex items-center gap-4">
           <Link to={returnTo}>
             <Button variant="ghost" size="icon" className="rounded-full">
@@ -216,7 +259,17 @@ const Location = () => {
         <div className="mb-6">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground"/>
-            <Input placeholder="주소 검색" inputMode="search" enterKeyHint="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) e.currentTarget.blur(); }} className={`pl-10 h-12 rounded-xl ${searchQuery ? 'pr-10' : ''}`}/>
+            <Input
+              placeholder="주소 검색"
+              inputMode="search"
+              enterKeyHint="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) e.currentTarget.blur(); }}
+              className={`pl-10 h-12 rounded-xl ${searchQuery ? 'pr-10' : ''}`}
+            />
             {searchQuery && (<button type="button" onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" aria-label="검색어 지우기">
                 <X className="w-5 h-5"/>
               </button>)}

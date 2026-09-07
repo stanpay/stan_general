@@ -22,8 +22,16 @@ const preventGestureInsideMap = (event: Event) => {
 document.addEventListener("gesturestart", preventGestureInsideMap);
 document.addEventListener("gesturechange", preventGestureInsideMap);
 document.addEventListener("gestureend", preventGestureInsideMap);
+// Vite 개발 서버에서는 SW cache-first가 모듈/CSS를 고정해
+// 하단 네비·FAB 등이 "안 보이는" 것처럼 깨질 수 있어 등록하지 않는다.
 if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
+        if (import.meta.env.DEV) {
+            void navigator.serviceWorker.getRegistrations().then((regs) => {
+                for (const reg of regs) void reg.unregister();
+            });
+            return;
+        }
         navigator.serviceWorker.register("/service-worker.js").catch((error) => {
             // 등록 실패를 삼키면 오프라인 동작 이상을 추적할 수 없다
             console.error("[SW] 서비스워커 등록 실패", error);
