@@ -2,6 +2,15 @@ import type { AppLocale } from "@/lib/locale";
 
 const HANGUL = /[가-힣]/;
 
+/** nearby API 등 NFD 한글을 완성형(NFC)으로 맞춤 */
+export function normalizeKoreanText(text: string): string {
+  return text.normalize("NFC");
+}
+
+function hasHangul(text: string): boolean {
+  return HANGUL.test(normalizeKoreanText(text));
+}
+
 const GOOGLE_TL: Record<Exclude<AppLocale, "ko">, string> = {
   en: "en",
   zh: "zh-CN",
@@ -126,13 +135,29 @@ async function tryMyMemory(text: string, langpair: string): Promise<string | nul
 }
 
 /**
+ * 캐시에 있으면 동기 반환. 없으면 null.
+ * 훅 초기값·깜빡임 완화용 (네트워크는 하지 않음).
+ */
+export function peekCachedKoTranslation(
+  text: string,
+  targetLocale: AppLocale,
+): string | null {
+  const trimmed = normalizeKoreanText(text).trim();
+  if (!trimmed || targetLocale === "ko" || !hasHangul(trimmed)) {
+    return null;
+  }
+  loadPersistedCache();
+  return cache.get(cacheKey(targetLocale, trimmed)) ?? null;
+}
+
+/**
  * 한국어 원문을 선택 언어로 번역합니다. (무료 공개 엔드포인트 — 실패 시 원문 유지)
  * `ko`이거나 한글이 없으면 원문을 그대로 반환합니다.
  */
 export async function translateKoText(text: string, targetLocale: AppLocale): Promise<string> {
-  const trimmed = text.trim();
-  if (!trimmed || targetLocale === "ko" || !HANGUL.test(trimmed)) {
-    return text;
+  const trimmed = normalizeKoreanText(text).trim();
+  if (!trimmed || targetLocale === "ko" || !hasHangul(trimmed)) {
+    return normalizeKoreanText(text);
   }
 
   loadPersistedCache();
@@ -166,7 +191,7 @@ export async function translateKoText(text: string, targetLocale: AppLocale): Pr
     } catch {
       /* fall through */
     }
-    return text;
+    return trimmed;
   })();
 
   inflight.set(key, work);
@@ -175,4 +200,12 @@ export async function translateKoText(text: string, targetLocale: AppLocale): Pr
   } finally {
     inflight.delete(key);
   }
+}
+
+/** 여러 문구를 병렬 번역 (캐시·inflight 공유) */
+export async function translateKoTexts(
+  texts: string[],
+  targetLocale: AppLocale,
+): Promise<string[]> {
+  return Promise.all(texts.map((t) => translateKoText(t, targetLocale)));
 }

@@ -18,6 +18,7 @@ const RedirectToJeju = lazy(() => import("./pages/RedirectToJeju"));
 const NavigatePage = lazy(() => import("./pages/Navigate"));
 /** 제주 원도심 상권 — Initial commit Main/지도 스냅샷. /main 작업과 독립. */
 const JejuOneDosim = lazy(() => import("./jejuonedosim/Main"));
+const StoreMenu = lazy(() => import("./pages/StoreMenu"));
 
 // 개발 전용 페이지는 정적 import를 유지한다.
 // lazy()로 바꾸면 동적 import가 프로덕션에서도 별도 청크로 방출되어
@@ -61,6 +62,7 @@ const App = () => (
           <Route path="/landing" element={<LandingPage />} />
           <Route path="/location" element={<Location />} />
           <Route path="/navigate" element={<NavigatePage />} />
+          <Route path="/menu/:storeName" element={<StoreMenu />} />
           <Route path="/jejuqronedosim" element={<RedirectToJeju />} />
           {/* 개발 전용 — import.meta.env.DEV가 프로덕션 빌드에서 false로 치환되어
               라우트와 해당 컴포넌트가 번들에서 제거된다 */}

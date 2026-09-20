@@ -126,12 +126,12 @@ const ChatPanel = ({ open, onClose }: ChatPanelProps) => {
         className={cn("fixed z-[60] flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xl",
           "left-3 right-3 sm:left-auto sm:right-[1.5rem] sm:w-[min(440px,calc(100vw-1.5rem))]")}
         style={{ display: open ? undefined : "none", bottom: panelBox.bottom || `calc(${CHAT_FAB_BOTTOM} + ${CHAT_FAB_SIZE} + 0.75rem)`, height: panelBox.height }}>
-        <header className="flex shrink-0 items-center gap-3 bg-primary px-4 py-3 text-primary-foreground">
+        <header className="flex shrink-0 items-center gap-2 bg-primary px-3 py-2 text-primary-foreground">
           <p className="min-w-0 flex-1 truncate text-sm font-semibold">{copy.title}</p>
           <a href={CHAT_ORIGIN} target="_blank" rel="noopener noreferrer" aria-label={copy.newWindow}
-            className="rounded-full p-1.5 hover:bg-primary-foreground/15"><ExternalLink className="h-4 w-4" /></a>
+            className="rounded-full p-1 hover:bg-primary-foreground/15"><ExternalLink className="h-4 w-4" /></a>
           <button ref={closeRef} type="button" aria-label={copy.close} onClick={onClose}
-            className="rounded-full p-1.5 hover:bg-primary-foreground/15"><X className="h-5 w-5" /></button>
+            className="rounded-full p-1 hover:bg-primary-foreground/15"><X className="h-4 w-4" /></button>
         </header>
         <div className="relative min-h-0 flex-1">
           <iframe key={attempt} ref={frameRef} src={initialUrl.current ?? CHAT_URL} title={copy.title}

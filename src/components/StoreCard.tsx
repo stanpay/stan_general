@@ -8,7 +8,9 @@ import { useTranslatedKoreanText } from "@/hooks/useKoreanDisplayText";
 import { AutoFitMarquee } from "@/components/AutoFitMarquee";
 import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { CSSProperties, KeyboardEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import { openStoreRedirect } from "@/lib/storeRedirect";
+import { isMenuBoardStore, menuBoardPath } from "@/lib/menuBoardStores";
 
 interface StoreCardProps {
   id: string;
@@ -89,6 +91,7 @@ const StoreCard = ({
   detailUrl,
   onActivate,
 }: StoreCardProps) => {
+  const navigate = useNavigate();
   const { locale } = useAppLocale();
   const sc = storeCardStrings(locale);
   const displayName = useTranslatedKoreanText(name, locale);
@@ -160,6 +163,13 @@ const StoreCard = ({
     // 부모에서 동작을 직접 제어하는 경우 (예: 지도 선택 + 리다이렉트)
     if (onActivate) {
       onActivate();
+      return;
+    }
+
+    if (isMenuBoardStore(name)) {
+      navigate(menuBoardPath(name), {
+        state: { lat, lon, name },
+      });
       return;
     }
 

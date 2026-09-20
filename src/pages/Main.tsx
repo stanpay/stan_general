@@ -62,6 +62,7 @@ import {
   readValidPrefetchedLocation,
 } from "@/lib/locationPrefetch";
 import { openStoreRedirect, prefetchStoreRedirects } from "@/lib/storeRedirect";
+import { isMenuBoardStore, menuBoardPath } from "@/lib/menuBoardStores";
 import LocationPermissionModal from "@/components/LocationPermissionModal";
 import {
   mainStrings,
@@ -3174,7 +3175,15 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
         selectedStoreId={selectedMapStoreId}
         highlightSelectedCard={highlightMapSheetCard}
         onSelectStoreFromCard={(store) => {
-          if (store.detailUrl) {
+          if (isMenuBoardStore(store.name)) {
+            navigate(menuBoardPath(store.name), {
+              state: {
+                lat: store.lat,
+                lon: store.lon,
+                name: store.name,
+              },
+            });
+          } else if (store.detailUrl) {
             openStoreRedirect(store.detailUrl, {
               lat: store.lat,
               lon: store.lon,

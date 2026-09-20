@@ -14,6 +14,27 @@ import {
   type StoreFilterChipId,
 } from "@/lib/storeFilters";
 
+const OPEN_NOW_STORAGE_KEY = "storeFilter:openNow";
+
+/** 저장된 값이 없으면 기본 ON (기존 동작과 동일) */
+function readOpenNowPreference(): boolean {
+  try {
+    const raw = localStorage.getItem(OPEN_NOW_STORAGE_KEY);
+    if (raw === null) return true;
+    return raw === "true";
+  } catch {
+    return true;
+  }
+}
+
+function writeOpenNowPreference(on: boolean): void {
+  try {
+    localStorage.setItem(OPEN_NOW_STORAGE_KEY, String(on));
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
 /**
  * 칩 선택 토글 규칙.
  * "all"은 단독 선택이고, 나머지는 다중 선택이며, 모두 해제되면 "all"로 돌아간다.
@@ -41,7 +62,11 @@ type UseStoreFiltersOptions = {
 
 export function useStoreFilters({ locale }: UseStoreFiltersOptions) {
   const [benefitFilterChips, setBenefitFilterChips] = useState<Set<LegacyBenefitFilterChipId>>(
-    () => new Set<LegacyBenefitFilterChipId>(["all", "openNow"])
+    () => {
+      const chips = new Set<LegacyBenefitFilterChipId>(["all"]);
+      if (readOpenNowPreference()) chips.add("openNow");
+      return chips;
+    }
   );
   const [areaFilterChips, setAreaFilterChips] = useState<Set<StoreAreaFilterChipId>>(
     () => new Set<StoreAreaFilterChipId>(["all"])
@@ -49,6 +74,10 @@ export function useStoreFilters({ locale }: UseStoreFiltersOptions) {
   const [categoryFilterChips, setCategoryFilterChips] = useState<Set<StoreFilterChipId>>(
     () => new Set<StoreFilterChipId>(["all"])
   );
+
+  useEffect(() => {
+    writeOpenNowPreference(benefitFilterChips.has("openNow"));
+  }, [benefitFilterChips]);
 
   useEffect(() => {
     if (locale === "ko") return;

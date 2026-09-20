@@ -469,6 +469,200 @@ export function storeCardStrings(locale: AppLocale): StoreCardCopy {
   return STORE_CARD_COPY[locale];
 }
 
+type StoreMenuAllergenKey =
+  | "egg"
+  | "milk"
+  | "buckwheat"
+  | "peanut"
+  | "soy"
+  | "wheat"
+  | "mackerel"
+  | "crab"
+  | "shrimp"
+  | "pork"
+  | "peach"
+  | "tomato"
+  | "sulfite"
+  | "walnut"
+  | "chicken"
+  | "beef"
+  | "squid"
+  | "shellfish"
+  | "pineNut";
+
+type StoreMenuCopy = {
+  pageTitleFallback: string;
+  unavailableStore: string;
+  loadError: string;
+  emptyMenus: string;
+  quantity: string;
+  quantityDecreaseAria: string;
+  quantityIncreaseAria: string;
+  allergenToggle: string;
+  allergenPrefix: string;
+  allergenNone: string;
+  cart: string;
+  cartEmpty: string;
+  total: string;
+  selectedCount: (n: number) => string;
+  allergens: Record<StoreMenuAllergenKey, string>;
+};
+
+const STORE_MENU_COPY: Record<AppLocale, StoreMenuCopy> = {
+  ko: {
+    pageTitleFallback: "메뉴판",
+    unavailableStore: "메뉴판을 열 수 없는 매장입니다.",
+    loadError: "메뉴를 불러오지 못했습니다.",
+    emptyMenus: "등록된 메뉴가 없습니다.",
+    quantity: "수량",
+    quantityDecreaseAria: "수량 감소",
+    quantityIncreaseAria: "수량 증가",
+    allergenToggle: "알레르기 정보",
+    allergenPrefix: "알레르기 정보:",
+    allergenNone: "해당 없음",
+    cart: "장바구니",
+    cartEmpty: "담은 메뉴가 없습니다.",
+    total: "합계",
+    selectedCount: (n) => `${n}개 선택`,
+    allergens: {
+      egg: "난류",
+      milk: "우유",
+      buckwheat: "메밀",
+      peanut: "땅콩",
+      soy: "대두",
+      wheat: "밀",
+      mackerel: "고등어",
+      crab: "게",
+      shrimp: "새우",
+      pork: "돼지고기",
+      peach: "복숭아",
+      tomato: "토마토",
+      sulfite: "아황산류",
+      walnut: "호두",
+      chicken: "닭고기",
+      beef: "쇠고기",
+      squid: "오징어",
+      shellfish: "조개류",
+      pineNut: "잣",
+    },
+  },
+  en: {
+    pageTitleFallback: "Menu",
+    unavailableStore: "This store has no menu page.",
+    loadError: "Couldn't load the menu.",
+    emptyMenus: "No menu items yet.",
+    quantity: "Qty",
+    quantityDecreaseAria: "Decrease quantity",
+    quantityIncreaseAria: "Increase quantity",
+    allergenToggle: "Allergy info",
+    allergenPrefix: "Allergy info:",
+    allergenNone: "None",
+    cart: "Cart",
+    cartEmpty: "Your cart is empty.",
+    total: "Total",
+    selectedCount: (n) => `${n} selected`,
+    allergens: {
+      egg: "Eggs",
+      milk: "Milk",
+      buckwheat: "Buckwheat",
+      peanut: "Peanuts",
+      soy: "Soy",
+      wheat: "Wheat",
+      mackerel: "Mackerel",
+      crab: "Crab",
+      shrimp: "Shrimp",
+      pork: "Pork",
+      peach: "Peach",
+      tomato: "Tomato",
+      sulfite: "Sulfites",
+      walnut: "Walnuts",
+      chicken: "Chicken",
+      beef: "Beef",
+      squid: "Squid",
+      shellfish: "Shellfish",
+      pineNut: "Pine nuts",
+    },
+  },
+  zh: {
+    pageTitleFallback: "菜单",
+    unavailableStore: "该店铺没有菜单页。",
+    loadError: "无法加载菜单。",
+    emptyMenus: "暂无菜单。",
+    quantity: "数量",
+    quantityDecreaseAria: "减少数量",
+    quantityIncreaseAria: "增加数量",
+    allergenToggle: "过敏原信息",
+    allergenPrefix: "过敏原信息:",
+    allergenNone: "无",
+    cart: "购物车",
+    cartEmpty: "购物车为空。",
+    total: "合计",
+    selectedCount: (n) => `已选 ${n} 件`,
+    allergens: {
+      egg: "蛋类",
+      milk: "牛奶",
+      buckwheat: "荞麦",
+      peanut: "花生",
+      soy: "大豆",
+      wheat: "小麦",
+      mackerel: "鲭鱼",
+      crab: "蟹",
+      shrimp: "虾",
+      pork: "猪肉",
+      peach: "桃子",
+      tomato: "番茄",
+      sulfite: "亚硫酸盐",
+      walnut: "核桃",
+      chicken: "鸡肉",
+      beef: "牛肉",
+      squid: "鱿鱼",
+      shellfish: "贝类",
+      pineNut: "松子",
+    },
+  },
+  ja: {
+    pageTitleFallback: "メニュー",
+    unavailableStore: "この店舗のメニューはありません。",
+    loadError: "メニューを読み込めませんでした。",
+    emptyMenus: "登録されたメニューがありません。",
+    quantity: "数量",
+    quantityDecreaseAria: "数量を減らす",
+    quantityIncreaseAria: "数量を増やす",
+    allergenToggle: "アレルギー情報",
+    allergenPrefix: "アレルギー情報:",
+    allergenNone: "該当なし",
+    cart: "カート",
+    cartEmpty: "カートは空です。",
+    total: "合計",
+    selectedCount: (n) => `${n}点選択`,
+    allergens: {
+      egg: "卵",
+      milk: "乳",
+      buckwheat: "そば",
+      peanut: "ピーナッツ",
+      soy: "大豆",
+      wheat: "小麦",
+      mackerel: "さば",
+      crab: "かに",
+      shrimp: "えび",
+      pork: "豚肉",
+      peach: "もも",
+      tomato: "トマト",
+      sulfite: "亜硫酸塩",
+      walnut: "くるみ",
+      chicken: "鶏肉",
+      beef: "牛肉",
+      squid: "いか",
+      shellfish: "貝類",
+      pineNut: "松の実",
+    },
+  },
+};
+
+export function storeMenuStrings(locale: AppLocale): StoreMenuCopy {
+  return STORE_MENU_COPY[locale];
+}
+
 const PARKING_SIZE: Record<string, Record<AppLocale, string>> = {
   넓음: { ko: "넓음", en: "Spacious", zh: "宽敞", ja: "広い" },
   보통: { ko: "보통", en: "Medium", zh: "一般", ja: "普通" },

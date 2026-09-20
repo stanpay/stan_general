@@ -21,6 +21,7 @@ out
 .env.*
 !.env.example
 !.env*.example
+env-vault/
 *.pem
 *.p8
 *.p12
