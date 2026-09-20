@@ -10,8 +10,6 @@ type VirtualKeyboardLike = {
 export const KEYBOARD_OPEN_THRESHOLD_PX = 80;
 /** overlays-content 에서 viewport가 안 줄 때 쓰는 추정 키보드 비율 */
 export const KEYBOARD_ESTIMATE_RATIO = 0.42;
-/** Chrome/Safari 모바일 주소창 대략 높이 (측정 실패 시) */
-export const DEFAULT_BROWSER_ADDRESS_BAR_PX = 56;
 
 export function getVirtualKeyboard(): VirtualKeyboardLike | undefined {
   return (navigator as Navigator & { virtualKeyboard?: VirtualKeyboardLike })
@@ -47,8 +45,9 @@ export function getSoftKeyboardInsetPx(inputFocused: boolean): number {
 }
 
 /**
- * 비-PWA(일반 웹)에서 키보드가 열릴 때 주소창이 다시 펼쳐지며
- * 콘텐츠가 키보드와 겹치는 만큼의 보정 높이.
+ * 비-PWA(일반 웹)에서 키보드가 열릴 때 주소창이 펼쳐진 실측 높이.
+ * visualViewport.offsetTop 등으로 측정되지 않으면 0 — 추정값(56 등)을
+ * 넣으면 sticky 헤더가 허공에 떠 배너가 비치는 부작용이 난다.
  * PWA(standalone 등)에서는 주소창이 없으므로 0.
  */
 export function getBrowserAddressBarInsetPx(keyboardOpen: boolean): number {
@@ -60,28 +59,23 @@ export function getBrowserAddressBarInsetPx(keyboardOpen: boolean): number {
   // iOS 등: visualViewport.offsetTop 이 툴바/주소창 영역을 반영
   if (vvTop >= 24) return vvTop;
 
-  const layoutH = window.innerHeight;
-  const outerGap = Math.round(window.outerHeight - layoutH);
-  // 키보드가 열린 뒤 outerGap 이 비정상적으로 커질 수 있어 상한 클램프
-  if (outerGap >= 24 && outerGap <= 120) return outerGap;
-
-  return DEFAULT_BROWSER_ADDRESS_BAR_PX;
+  return 0;
 }
 
 export type ViewportKeyboardInsets = {
   keyboardInset: number;
   addressBarInset: number;
-  /** 하단 fixed UI를 올릴 양 = keyboard + (웹일 때 addressBar) */
+  /** 하단 fixed UI를 올릴 양 (소프트 키보드) */
   bottomInset: number;
-  /** 상단 sticky/fixed UI 보정 (검색 헤더 등) */
+  /** 상단 sticky/fixed UI 보정 — 실측 visualViewport.offsetTop 만 */
   topInset: number;
   keyboardOpen: boolean;
 };
 
 /**
- * 모바일 입력 포커스 시 키보드(+ 웹 주소창) inset.
- * - PWA: 키보드만
- * - 웹사이트: 키보드 + 주소창 (주소창만큼 키보드와 겹치는 현상 보정)
+ * 모바일 입력 포커스 시 키보드·상단 inset.
+ * - topInset: visualViewport.offsetTop 실측만 (추정 주소창 높이 사용 안 함)
+ * - bottomInset: 소프트 키보드만 (주소창을 하단에도 더하면 과보정)
  */
 export function getViewportKeyboardInsets(
   inputFocused: boolean
@@ -101,16 +95,11 @@ export function getViewportKeyboardInsets(
   const addressBarInset = getBrowserAddressBarInsetPx(keyboardOpen);
   const vvTop = Math.round(window.visualViewport?.offsetTop ?? 0);
 
-  // 웹: 주소창이 펼쳐진 만큼 상·하단 모두 보정. PWA: vv.offsetTop만.
-  const topInset = keyboardOpen
-    ? Math.max(vvTop, addressBarInset)
-    : vvTop;
-
   return {
     keyboardInset,
     addressBarInset,
-    bottomInset: keyboardOpen ? keyboardInset + addressBarInset : 0,
-    topInset,
+    bottomInset: keyboardOpen ? keyboardInset : 0,
+    topInset: vvTop,
     keyboardOpen,
   };
 }

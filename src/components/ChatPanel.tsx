@@ -17,23 +17,30 @@ const PANEL_MAX_HEIGHT_PX = 680;
 
 type ChatPanelProps = { open: boolean; onClose: () => void };
 type PanelBox = { bottom: number; height: number };
-/** null = 전체 화면(inset-0). 값 있으면 모바일 키보드(+주소창)만큼 축소 */
+/** null = 전체 화면(inset-0). 값 있으면 모바일 키보드만큼 축소 */
 type BackdropBox = { top: number; bottom: number } | null;
 
 const computePanelBox = (inputFocused: boolean): PanelBox => {
   const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
   const baseBottom = (4 - 1.75 + 3.5 + 0.75) * rem + 30;
-  const { bottomInset, topInset, keyboardOpen } = getViewportKeyboardInsets(inputFocused);
-  const bottom = keyboardOpen ? bottomInset + 8 : baseBottom;
-  return { bottom, height: Math.max(160, Math.min(PANEL_MAX_HEIGHT_PX, window.innerHeight - bottom - 12 - topInset)) };
+  // keyboardInset만 사용 — addressBar를 bottom·top에 중복 반영하면 과하게 줄어듦
+  const { keyboardInset, keyboardOpen } = getViewportKeyboardInsets(inputFocused);
+  const vvTop = Math.round(window.visualViewport?.offsetTop ?? 0);
+  const bottom = keyboardOpen ? keyboardInset + 8 : baseBottom;
+  const topGap = keyboardOpen ? Math.max(12, vvTop) : 12 + vvTop;
+  return {
+    bottom,
+    height: Math.max(160, Math.min(PANEL_MAX_HEIGHT_PX, window.innerHeight - bottom - topGap)),
+  };
 };
 
-/** 모바일 브라우저: 포커스 시 키보드(+주소창)만큼 축소, 해제 시 전체 복구 */
+/** 모바일: 포커스 시 키보드만큼 축소, 해제 시 전체 복구 (주소창 이중 보정 없음) */
 const computeBackdropBox = (inputFocused: boolean): BackdropBox => {
   if (!inputFocused || !isNarrowViewport()) return null;
-  const { topInset, bottomInset, keyboardOpen } = getViewportKeyboardInsets(true);
+  const { keyboardInset, keyboardOpen } = getViewportKeyboardInsets(true);
   if (!keyboardOpen) return null;
-  return { top: topInset, bottom: bottomInset };
+  const vvTop = Math.round(window.visualViewport?.offsetTop ?? 0);
+  return { top: vvTop, bottom: keyboardInset };
 };
 
 /** Load once on first open, then retain the iframe so drafts and streams survive closing. */

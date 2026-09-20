@@ -136,7 +136,7 @@ function isMapAtMaxZoom(map: { getMaxZoom?: () => number; getZoom: () => number 
 const MAP_SPIDERFY_RADIUS_PX = 32;
 const INITIAL_STORE_BATCH = 10;
 /** 모바일 카드뷰 검색 포커스 시 배너 완전 숨김용 추가 스크롤 (main pt-3·서브픽셀 여유) */
-const CARD_BANNER_SCROLL_EXTRA_PX = 16;
+const CARD_BANNER_SCROLL_EXTRA_PX = 11;
 const LOAD_MORE_STORE_BATCH = 10;
 
 const BRAND_NAME_MAP: Record<string, string> = {
@@ -2510,7 +2510,7 @@ const legacyBenefitChipLabelMap: Record<LegacyBenefitFilterChipId, string> = {
   }, [searchQuery, isMapView]);
 
   // 모바일 검색 포커스 시 상단 보정 (카드 헤더·지도 검색행)
-  // PWA → visualViewport.offsetTop(키보드)만 / 웹 → 키보드+주소창
+  // visualViewport.offsetTop 실측만 사용 (추정 주소창 56px 금지)
   useEffect(() => {
     if (!isMobile || !searchInputFocused) {
       setCardHeaderIosTop(0);
