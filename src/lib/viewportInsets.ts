@@ -32,12 +32,20 @@ export function getSoftKeyboardInsetPx(inputFocused: boolean): number {
   const vvH = vv?.height ?? layoutH;
   const vvTop = vv?.offsetTop ?? 0;
 
-  const vkHeight = Math.round(getVirtualKeyboard()?.boundingRect?.height ?? 0);
+  const vk = getVirtualKeyboard();
+  const vkHeight = Math.round(vk?.boundingRect?.height ?? 0);
   const vvInset = Math.max(0, Math.round(layoutH - (vvTop + vvH)));
   let keyboardInset = Math.max(vkHeight, vvInset);
 
-  // Chrome + interactive-widget=overlays-content: viewport가 안 줄어듦 → 포커스 시 추정
-  if (keyboardInset < KEYBOARD_OPEN_THRESHOLD_PX && inputFocused && isNarrowViewport()) {
+  // overlays-content 일 때만 포커스 추정. resizes-visual 에서는 실측만 쓰고,
+  // 포커스만으로 추정하면 뒤로가기로 키보드만 닫혀도 축소가 남는다.
+  const overlays = vk?.overlaysContent === true;
+  if (
+    overlays &&
+    keyboardInset < KEYBOARD_OPEN_THRESHOLD_PX &&
+    inputFocused &&
+    isNarrowViewport()
+  ) {
     keyboardInset = Math.round(layoutH * KEYBOARD_ESTIMATE_RATIO);
   }
 

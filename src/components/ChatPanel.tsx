@@ -120,19 +120,27 @@ const ChatPanel = ({ open, onClose }: ChatPanelProps) => {
     }
     const vk = getVirtualKeyboard();
     const previousOverlay = vk?.overlaysContent;
+    // index.html interactive-widget=resizes-visual 과 맞춤 — overlay 강제 시
+    // 뒤로가기로 키보드만 닫혀도 포커스 추정 축소가 남는다.
     if (vk) {
-      try { vk.overlaysContent = true; } catch { /* Not supported by every browser. */ }
+      try { vk.overlaysContent = false; } catch { /* Not supported by every browser. */ }
     }
+
     const apply = () => {
       setPanelBox(computePanelBox(inputFocused));
       setBackdropBox(computeBackdropBox(inputFocused));
     };
     apply();
+
+    // 키보드 닫힘 애니메이션 중·직후 뷰포트가 늦게 갱신되므로 재측정
+    const retryTimers = [50, 150, 350].map((ms) => window.setTimeout(apply, ms));
+
     window.addEventListener("resize", apply);
     window.visualViewport?.addEventListener("resize", apply);
     window.visualViewport?.addEventListener("scroll", apply);
     vk?.addEventListener("geometrychange", apply);
     return () => {
+      retryTimers.forEach((id) => window.clearTimeout(id));
       window.removeEventListener("resize", apply);
       window.visualViewport?.removeEventListener("resize", apply);
       window.visualViewport?.removeEventListener("scroll", apply);
