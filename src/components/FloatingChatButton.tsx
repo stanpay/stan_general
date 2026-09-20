@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { MessageCircle, X } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import ChatPanel from "@/components/ChatPanel";
@@ -6,10 +6,11 @@ import { CHAT_FAB_BOTTOM, CHAT_FAB_RIGHT, CHAT_FAB_SIZE } from "@/lib/chatFab";
 import { acquireChatViewportLock } from "@/lib/chatViewportLock";
 import { cn } from "@/lib/utils";
 
-/** 전역 우측 하단 채팅 FAB + 커스텀 채팅 팝업 (더미 UI) */
+/** 전역 우측 하단 채팅 FAB + stan.lkim.me 채팅 iframe */
 const FloatingChatButton = () => {
   const { pathname } = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+  const closeChat = useCallback(() => setIsOpen(false), []);
 
   // 상권 스냅샷(/jejuonedosim)에는 채팅 FAB를 두지 않는다.
   if (pathname === "/jejuonedosim" || pathname.startsWith("/jejuonedosim/")) {
@@ -18,9 +19,11 @@ const FloatingChatButton = () => {
 
   return (
     <>
-      <ChatPanel open={isOpen} onClose={() => setIsOpen(false)} />
+      <ChatPanel open={isOpen} onClose={closeChat} />
       <button
         type="button"
+        id="chat-launcher"
+        aria-controls="stan-chat-panel"
         aria-label={isOpen ? "채팅 닫기" : "채팅 열기"}
         aria-expanded={isOpen}
         // 모바일 Chrome: 하단 fixed 버튼 포커스 → scrollIntoView → 살짝 스크롤/주소창

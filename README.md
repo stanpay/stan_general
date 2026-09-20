@@ -87,6 +87,20 @@ API 키는 서버에만 보관되며 클라이언트 번들에 포함되지 않�
 - **CSP는 Report-Only** — `vercel.json`의 CSP는 아직 차단하지 않고 위반만 기록합니다.
   실제 사용 흐름으로 위반 목록을 다듬은 뒤 적용 모드로 전환해야 합니다.
 
+## 채팅 모달
+
+우측 하단 채팅 버튼은 `https://stan.lkim.me/?embed=1`을 iframe으로 연다.
+`src/components/ChatPanel.tsx`가 모달 크기·닫기·로딩 상태를 관리하고,
+대화·프로필·답변은 `stan_chat_api` 저장소의 프론트엔드/Mastra가 처리한다.
+처음 열 때 로드하고 닫을 때는 숨겨 초안과 진행 중인 답변을 유지한다.
+
+iframe과는 `stan-chat:ready`, `stan-chat:close`, `stan-chat:focus`,
+`stan-chat:visibility` 메시지만 교환한다. 출처와 iframe window를 모두 확인하며
+대화 내용이나 API 키를 부모 페이지로 보내지 않는다.
+`vercel.json`은 해당 도메인의 iframe, 마이크, 클립보드 쓰기를 허용한다.
+브라우저 정책상 단독 사이트와 iframe의 대화 보관함이 분리될 수 있다.
+연결 실패 시 재시도하거나 새 창에서 열 수 있다.
+
 ## 배포
 
 `main` 브랜치 푸시 시 Vercel이 자동 배포합니다.
