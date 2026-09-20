@@ -4,6 +4,8 @@ import { CHAT_FAB_BOTTOM, CHAT_FAB_SIZE } from "@/lib/chatFab";
 import { acquireChatViewportLock, releaseChatViewportLock } from "@/lib/chatViewportLock";
 import { getVirtualKeyboard, getViewportKeyboardInsets } from "@/lib/viewportInsets";
 import { cn } from "@/lib/utils";
+import { useAppLocale } from "@/contexts/AppLocaleContext";
+import { CHAT_COPY } from "@/lib/chatCopy";
 
 const CHAT_ORIGIN = "https://stan.lkim.me";
 const CHAT_URL = `${CHAT_ORIGIN}/?embed=1`;
@@ -22,6 +24,11 @@ const computePanelBox = (inputFocused: boolean): PanelBox => {
 
 /** Load once on first open, then retain the iframe so drafts and streams survive closing. */
 const ChatPanel = ({ open, onClose }: ChatPanelProps) => {
+  const { locale } = useAppLocale();
+  const copy = CHAT_COPY[locale];
+  // Freeze the first URL: subsequent language changes use postMessage, preserving drafts.
+  const initialUrl = useRef<string | null>(null);
+  if (open && !initialUrl.current) initialUrl.current = `${CHAT_URL}&lang=${locale}`;
   const [hasOpened, setHasOpened] = useState(false);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -41,6 +48,7 @@ const ChatPanel = ({ open, onClose }: ChatPanelProps) => {
       if (event.data?.type === "stan-chat:ready") {
         setReady(true);
         setFailed(false);
+        frameRef.current?.contentWindow?.postMessage({ type: "stan-chat:config", locale }, CHAT_ORIGIN);
         frameRef.current?.contentWindow?.postMessage({ type: "stan-chat:visibility", visible: open }, CHAT_ORIGIN);
       } else if (open && event.data?.type === "stan-chat:close") {
         onClose();
@@ -50,7 +58,11 @@ const ChatPanel = ({ open, onClose }: ChatPanelProps) => {
     };
     window.addEventListener("message", receive);
     return () => window.removeEventListener("message", receive);
-  }, [open, onClose]);
+  }, [open, onClose, locale]);
+
+  useEffect(() => {
+    if (ready) frameRef.current?.contentWindow?.postMessage({ type: "stan-chat:config", locale }, CHAT_ORIGIN);
+  }, [locale, ready]);
 
   useEffect(() => {
     frameRef.current?.contentWindow?.postMessage({ type: "stan-chat:visibility", visible: open }, CHAT_ORIGIN);
@@ -107,32 +119,32 @@ const ChatPanel = ({ open, onClose }: ChatPanelProps) => {
   return (
     <>
       {open && (
-        <button type="button" aria-label="채팅 배경 닫기" tabIndex={-1}
+        <button type="button" aria-label={copy.backdrop} tabIndex={-1}
           className="fixed inset-0 z-[55] bg-black/35" onClick={onClose} />
       )}
-      <section id="stan-chat-panel" role="dialog" aria-modal="true" aria-label="스탠 AI 채팅" hidden={!open}
+      <section id="stan-chat-panel" role="dialog" aria-modal="true" aria-label={copy.title} hidden={!open}
         className={cn("fixed z-[60] flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xl",
           "left-3 right-3 sm:left-auto sm:right-[1.5rem] sm:w-[min(440px,calc(100vw-1.5rem))]")}
         style={{ display: open ? undefined : "none", bottom: panelBox.bottom || `calc(${CHAT_FAB_BOTTOM} + ${CHAT_FAB_SIZE} + 0.75rem)`, height: panelBox.height }}>
         <header className="flex shrink-0 items-center gap-3 bg-primary px-4 py-3 text-primary-foreground">
-          <p className="min-w-0 flex-1 truncate text-sm font-semibold">스탠 AI 채팅</p>
-          <a href={CHAT_ORIGIN} target="_blank" rel="noopener noreferrer" aria-label="채팅 새 창에서 열기"
+          <p className="min-w-0 flex-1 truncate text-sm font-semibold">{copy.title}</p>
+          <a href={CHAT_ORIGIN} target="_blank" rel="noopener noreferrer" aria-label={copy.newWindow}
             className="rounded-full p-1.5 hover:bg-primary-foreground/15"><ExternalLink className="h-4 w-4" /></a>
-          <button ref={closeRef} type="button" aria-label="채팅 닫기" onClick={onClose}
+          <button ref={closeRef} type="button" aria-label={copy.close} onClick={onClose}
             className="rounded-full p-1.5 hover:bg-primary-foreground/15"><X className="h-5 w-5" /></button>
         </header>
         <div className="relative min-h-0 flex-1">
-          <iframe key={attempt} ref={frameRef} src={CHAT_URL} title="스탠 여행 AI 채팅"
+          <iframe key={attempt} ref={frameRef} src={initialUrl.current ?? CHAT_URL} title={copy.title}
             referrerPolicy="strict-origin-when-cross-origin"
             allow="microphone https://stan.lkim.me; clipboard-write https://stan.lkim.me"
             className="block h-full w-full border-0 bg-background" onError={() => setFailed(true)} />
           {!ready && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background p-6 text-center text-sm" role="status">
-              <p>{failed ? "채팅을 불러오지 못했습니다. 다시 시도하거나 새 창에서 열어 주세요." : "채팅을 불러오는 중…"}</p>
+              <p>{failed ? copy.failed : copy.loading}</p>
               {failed && <>
                 <button type="button" className="rounded-lg bg-primary px-4 py-2 text-primary-foreground"
-                  onClick={() => { setFailed(false); setReady(false); setAttempt((n) => n + 1); }}>다시 시도</button>
-                <a href={CHAT_ORIGIN} target="_blank" rel="noopener noreferrer" className="underline">새 창에서 열기</a>
+                  onClick={() => { initialUrl.current = `${CHAT_URL}&lang=${locale}`; setFailed(false); setReady(false); setAttempt((n) => n + 1); }}>{copy.retry}</button>
+                <a href={CHAT_ORIGIN} target="_blank" rel="noopener noreferrer" className="underline">{copy.newWindow}</a>
               </>}
             </div>
           )}

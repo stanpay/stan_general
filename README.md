@@ -89,13 +89,18 @@ API 키는 서버에만 보관되며 클라이언트 번들에 포함되지 않�
 
 ## 채팅 모달
 
-우측 하단 채팅 버튼은 `https://stan.lkim.me/?embed=1`을 iframe으로 연다.
+우측 하단 채팅 버튼은 `https://stan.lkim.me/?embed=1&lang=<사이트 언어>`를 iframe으로 연다.
 `src/components/ChatPanel.tsx`가 모달 크기·닫기·로딩 상태를 관리하고,
 대화·프로필·답변은 `stan_chat_api` 저장소의 프론트엔드/Mastra가 처리한다.
 처음 열 때 로드하고 닫을 때는 숨겨 초안과 진행 중인 답변을 유지한다.
 
+사이트에서 선택한 언어를 첫 URL과 `stan-chat:config` 메시지로 전달한다.
+언어를 바꾸면 iframe을 새로고침하지 않고 채팅 UI·답변 언어가 함께 바뀐다.
+이 사이트에서 여는 채팅은 초기 사용자 정보 입력을 생략하고 바로 시작한다.
+처음 방문한 사용자는 추가 취향 조건 없이 기본값을 사용하며, 필요할 때 내정보에서 수정할 수 있다.
+
 iframe과는 `stan-chat:ready`, `stan-chat:close`, `stan-chat:focus`,
-`stan-chat:visibility` 메시지만 교환한다. 출처와 iframe window를 모두 확인하며
+`stan-chat:visibility`, `stan-chat:config` 메시지만 교환한다. 출처와 iframe window를 모두 확인하며
 대화 내용이나 API 키를 부모 페이지로 보내지 않는다.
 `vercel.json`은 해당 도메인의 iframe, 마이크, 클립보드 쓰기를 허용한다.
 브라우저 정책상 단독 사이트와 iframe의 대화 보관함이 분리될 수 있다.

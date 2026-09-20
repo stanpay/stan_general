@@ -5,9 +5,12 @@ import ChatPanel from "@/components/ChatPanel";
 import { CHAT_FAB_BOTTOM, CHAT_FAB_RIGHT, CHAT_FAB_SIZE } from "@/lib/chatFab";
 import { acquireChatViewportLock } from "@/lib/chatViewportLock";
 import { cn } from "@/lib/utils";
+import { useAppLocale } from "@/contexts/AppLocaleContext";
+import { CHAT_COPY } from "@/lib/chatCopy";
 
 /** 전역 우측 하단 채팅 FAB + stan.lkim.me 채팅 iframe */
 const FloatingChatButton = () => {
+  const { locale } = useAppLocale();
   const { pathname } = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const closeChat = useCallback(() => setIsOpen(false), []);
@@ -24,7 +27,7 @@ const FloatingChatButton = () => {
         type="button"
         id="chat-launcher"
         aria-controls="stan-chat-panel"
-        aria-label={isOpen ? "채팅 닫기" : "채팅 열기"}
+        aria-label={isOpen ? CHAT_COPY[locale].close : CHAT_COPY[locale].open}
         aria-expanded={isOpen}
         // 모바일 Chrome: 하단 fixed 버튼 포커스 → scrollIntoView → 살짝 스크롤/주소창
         onPointerDown={(event) => {
