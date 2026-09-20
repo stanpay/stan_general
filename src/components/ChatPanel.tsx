@@ -2,7 +2,11 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ExternalLink, X } from "lucide-react";
 import { CHAT_FAB_BOTTOM, CHAT_FAB_SIZE } from "@/lib/chatFab";
 import { acquireChatViewportLock, releaseChatViewportLock } from "@/lib/chatViewportLock";
-import { getVirtualKeyboard, getViewportKeyboardInsets } from "@/lib/viewportInsets";
+import {
+  getVirtualKeyboard,
+  getViewportKeyboardInsets,
+  isNarrowViewport,
+} from "@/lib/viewportInsets";
 import { cn } from "@/lib/utils";
 import { useAppLocale } from "@/contexts/AppLocaleContext";
 import { CHAT_COPY } from "@/lib/chatCopy";
@@ -13,6 +17,8 @@ const PANEL_MAX_HEIGHT_PX = 680;
 
 type ChatPanelProps = { open: boolean; onClose: () => void };
 type PanelBox = { bottom: number; height: number };
+/** null = 전체 화면(inset-0). 값 있으면 모바일 키보드(+주소창)만큼 축소 */
+type BackdropBox = { top: number; bottom: number } | null;
 
 const computePanelBox = (inputFocused: boolean): PanelBox => {
   const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
@@ -20,6 +26,14 @@ const computePanelBox = (inputFocused: boolean): PanelBox => {
   const { bottomInset, topInset, keyboardOpen } = getViewportKeyboardInsets(inputFocused);
   const bottom = keyboardOpen ? bottomInset + 8 : baseBottom;
   return { bottom, height: Math.max(160, Math.min(PANEL_MAX_HEIGHT_PX, window.innerHeight - bottom - 12 - topInset)) };
+};
+
+/** 모바일 브라우저: 포커스 시 키보드(+주소창)만큼 축소, 해제 시 전체 복구 */
+const computeBackdropBox = (inputFocused: boolean): BackdropBox => {
+  if (!inputFocused || !isNarrowViewport()) return null;
+  const { topInset, bottomInset, keyboardOpen } = getViewportKeyboardInsets(true);
+  if (!keyboardOpen) return null;
+  return { top: topInset, bottom: bottomInset };
 };
 
 /** Load once on first open, then retain the iframe so drafts and streams survive closing. */
@@ -35,6 +49,7 @@ const ChatPanel = ({ open, onClose }: ChatPanelProps) => {
   const [attempt, setAttempt] = useState(0);
   const [inputFocused, setInputFocused] = useState(false);
   const [panelBox, setPanelBox] = useState<PanelBox>({ bottom: 0, height: PANEL_MAX_HEIGHT_PX });
+  const [backdropBox, setBackdropBox] = useState<BackdropBox>(null);
   const frameRef = useRef<HTMLIFrameElement>(null);
   const panelRef = useRef<HTMLSectionElement>(null);
 
@@ -92,13 +107,19 @@ const ChatPanel = ({ open, onClose }: ChatPanelProps) => {
   }, [open, onClose]);
 
   useLayoutEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setBackdropBox(null);
+      return;
+    }
     const vk = getVirtualKeyboard();
     const previousOverlay = vk?.overlaysContent;
     if (vk) {
       try { vk.overlaysContent = true; } catch { /* Not supported by every browser. */ }
     }
-    const apply = () => setPanelBox(computePanelBox(inputFocused));
+    const apply = () => {
+      setPanelBox(computePanelBox(inputFocused));
+      setBackdropBox(computeBackdropBox(inputFocused));
+    };
     apply();
     window.addEventListener("resize", apply);
     window.visualViewport?.addEventListener("resize", apply);
@@ -121,7 +142,13 @@ const ChatPanel = ({ open, onClose }: ChatPanelProps) => {
     <>
       {open && (
         <button type="button" aria-label={copy.backdrop} tabIndex={-1}
-          className="fixed inset-0 z-[55] bg-black/35" onClick={onClose} />
+          className="fixed inset-x-0 z-[55] bg-black/35"
+          style={
+            backdropBox
+              ? { top: backdropBox.top, bottom: backdropBox.bottom }
+              : { top: 0, bottom: 0 }
+          }
+          onClick={onClose} />
       )}
       <section
         ref={panelRef}
