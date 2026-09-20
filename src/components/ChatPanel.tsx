@@ -36,7 +36,7 @@ const ChatPanel = ({ open, onClose }: ChatPanelProps) => {
   const [inputFocused, setInputFocused] = useState(false);
   const [panelBox, setPanelBox] = useState<PanelBox>({ bottom: 0, height: PANEL_MAX_HEIGHT_PX });
   const frameRef = useRef<HTMLIFrameElement>(null);
-  const closeRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLSectionElement>(null);
 
   useEffect(() => {
     if (open) setHasOpened(true);
@@ -78,7 +78,8 @@ const ChatPanel = ({ open, onClose }: ChatPanelProps) => {
   useEffect(() => {
     if (!open) return;
     acquireChatViewportLock();
-    closeRef.current?.focus({ preventScroll: true });
+    // 패널 자체에 포커스 — 닫기(X)에 두면 열 때마다 동그란 포커스 링이 보인다.
+    panelRef.current?.focus({ preventScroll: true });
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
@@ -122,16 +123,26 @@ const ChatPanel = ({ open, onClose }: ChatPanelProps) => {
         <button type="button" aria-label={copy.backdrop} tabIndex={-1}
           className="fixed inset-0 z-[55] bg-black/35" onClick={onClose} />
       )}
-      <section id="stan-chat-panel" role="dialog" aria-modal="true" aria-label={copy.title} hidden={!open}
-        className={cn("fixed z-[60] flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xl",
-          "left-3 right-3 sm:left-auto sm:right-[1.5rem] sm:w-[min(440px,calc(100vw-1.5rem))]")}
-        style={{ display: open ? undefined : "none", bottom: panelBox.bottom || `calc(${CHAT_FAB_BOTTOM} + ${CHAT_FAB_SIZE} + 0.75rem)`, height: panelBox.height }}>
+      <section
+        ref={panelRef}
+        id="stan-chat-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-label={copy.title}
+        tabIndex={-1}
+        hidden={!open}
+        className={cn(
+          "fixed z-[60] flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xl outline-none",
+          "left-3 right-3 sm:left-auto sm:right-[1.5rem] sm:w-[min(440px,calc(100vw-1.5rem))]",
+        )}
+        style={{ display: open ? undefined : "none", bottom: panelBox.bottom || `calc(${CHAT_FAB_BOTTOM} + ${CHAT_FAB_SIZE} + 0.75rem)`, height: panelBox.height }}
+      >
         <header className="flex shrink-0 items-center gap-2 bg-primary px-3 py-2 text-primary-foreground">
           <p className="min-w-0 flex-1 truncate text-sm font-semibold">{copy.title}</p>
           <a href={CHAT_ORIGIN} target="_blank" rel="noopener noreferrer" aria-label={copy.newWindow}
-            className="rounded-full p-1 hover:bg-primary-foreground/15"><ExternalLink className="h-4 w-4" /></a>
-          <button ref={closeRef} type="button" aria-label={copy.close} onClick={onClose}
-            className="rounded-full p-1 hover:bg-primary-foreground/15"><X className="h-4 w-4" /></button>
+            className="rounded-full p-1 outline-none hover:bg-primary-foreground/15 focus-visible:bg-primary-foreground/15"><ExternalLink className="h-4 w-4" /></a>
+          <button type="button" aria-label={copy.close} onClick={onClose}
+            className="rounded-full p-1 outline-none hover:bg-primary-foreground/15 focus-visible:bg-primary-foreground/15"><X className="h-4 w-4" /></button>
         </header>
         <div className="relative min-h-0 flex-1">
           <iframe key={attempt} ref={frameRef} src={initialUrl.current ?? CHAT_URL} title={copy.title}

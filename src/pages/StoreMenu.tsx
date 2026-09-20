@@ -17,6 +17,7 @@ import { useAppLocale } from "@/contexts/AppLocaleContext";
 import { useTranslatedKoreanText } from "@/hooks/useKoreanDisplayText";
 import { storeMenuStrings } from "@/lib/locale";
 import { translateKoTexts } from "@/lib/koTranslate";
+import { AutoFitMarquee } from "@/components/AutoFitMarquee";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -163,9 +164,12 @@ function MenuProductCard({
           {displayName}
         </h3>
         {showAllergens && allergenLabels.length > 0 ? (
-          <p className="text-xs leading-snug text-muted-foreground">
-            {`${sm.allergenPrefix} ${allergenLabels.join(", ")}`}
-          </p>
+          <AutoFitMarquee
+            as="p"
+            text={`${sm.allergenPrefix} ${allergenLabels.join(", ")}`}
+            textClassName="leading-snug text-muted-foreground"
+            fontSizeClasses={["text-xs"]}
+          />
         ) : null}
         {item.description ? (
           <p className="line-clamp-2 text-xs text-muted-foreground">
