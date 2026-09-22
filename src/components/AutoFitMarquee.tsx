@@ -70,7 +70,7 @@ export function AutoFitMarquee({
   }, [fontSizeKey, text, textClassName]);
 
   return (
-    <Tag ref={containerRef} className={cn("block min-w-0 pr-1.5", className)}>
+    <Tag ref={containerRef} className={cn("block w-full min-w-0 max-w-full pr-1.5", className)}>
       <span className="block min-w-0 overflow-hidden">
         <span
           className={cn(

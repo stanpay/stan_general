@@ -143,7 +143,7 @@ function MenuProductCard({
   }, [imageSrc]);
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card">
+    <div className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border/60 bg-card">
       <div className="relative aspect-[4/3] bg-muted">
         {showImage ? (
           <img
@@ -159,7 +159,7 @@ function MenuProductCard({
           <div className="absolute inset-0 bg-muted" aria-hidden />
         )}
       </div>
-      <div className="flex flex-1 flex-col gap-2 p-3">
+      <div className="flex min-w-0 flex-1 flex-col gap-2 p-3">
         <h3 className="line-clamp-2 text-sm font-bold leading-snug text-foreground">
           {displayName}
         </h3>
